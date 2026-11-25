@@ -775,3 +775,24 @@ body.on-hero .navbar:hover { opacity: 1; }
 
 /* Slide 5: hide the side player when assets/guess-example.mp4 is not there */
 .mini-monitor.has-missing { display: none; }
+
+
+/* =====================================================================
+   SLIDE 1 — self-driving motion (no mouse needed)
+   --lv is the fake audio level (0–1.4) written by script.js every frame
+   ===================================================================== */
+.hero-beam {
+  background:
+    radial-gradient(ellipse 60% 45% at var(--mx, 50%) var(--my, 40%), rgba(229,169,60, calc(.12 + var(--lv, 0) * .1)), transparent 70%),
+    radial-gradient(ellipse 40% 60% at 50% -10%, rgba(255,230,180,.10), transparent 70%);
+  transition: none;
+}
+.slide-hero.is-active .hero-title {
+  animation: heroBreath 7s ease-in-out 1.6s infinite;
+}
+@keyframes heroBreath {
+  0%, 100% { filter: drop-shadow(0 8px 40px rgba(229,169,60,.22)); transform: scale(1); }
+  50%      { filter: drop-shadow(0 8px 70px rgba(229,169,60,.5));  transform: scale(1.015); }
+}
+.slide-hero .hero-line { width: calc(90px + var(--lv, 0) * 90px); }
+.hero-sub { text-shadow: 0 0 calc(6px + var(--lv, 0) * 18px) rgba(229,169,60,.45); }

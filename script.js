@@ -249,89 +249,159 @@ const Hero = (() => {
   const canvas = $("#heroCanvas");
   const ctx = canvas.getContext("2d");
   const beam = $(".hero-beam");
-  let w = 0, h = 0, dpr = 1, raf = 0, running = false, t = 0;
-  const mouse = { x: 0.5, y: 0.45, tx: 0.5, ty: 0.45, energy: 0 };
-  let particles = [];
+  const heroSlide = $(".slide-hero");
+  let w = 0, h = 0, dpr = 1, raf = 0, running = false, t = 0, last = 0;
+  // focus = where the light + soundwave "listen". It drives itself (autopilot)
+  // and follows the real mouse for a few seconds whenever the mouse moves.
+  const focus = { x: 0.5, y: 0.55 };
+  const mouse = { x: 0.5, y: 0.5, lastMove: -99, energy: 0 };
+  let particles = [], sparks = [];
+  let level = 0, hit = 0, nextHit = 1.2;
 
   function resize() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     w = canvas.clientWidth; h = canvas.clientHeight;
     canvas.width = w * dpr; canvas.height = h * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const count = Math.round(clamp((w * h) / 9000, 60, 220));
+    const count = Math.round(clamp((w * h) / 7000, 80, 280));
     particles = Array.from({ length: count }, () => ({
       x: Math.random() * w, y: Math.random() * h,
-      r: Math.random() * 1.6 + 0.3,
-      vx: (Math.random() - 0.5) * 0.15, vy: -Math.random() * 0.25 - 0.05,
+      r: Math.random() * 1.7 + 0.3,
+      vx: (Math.random() - 0.5) * 0.25, vy: -Math.random() * 0.45 - 0.08,
       a: Math.random() * 0.6 + 0.15, tw: Math.random() * Math.PI * 2,
       depth: Math.random() * 0.8 + 0.2,
     }));
   }
 
-  function frame() {
+  // A fake "audio level" that behaves like someone speaking over music:
+  // a breathing bed, syllable-like flutter, and occasional hits (like foley).
+  function audioLevel(dt) {
+    nextHit -= dt;
+    if (nextHit <= 0) { hit = 0.7 + Math.random() * 0.3; nextHit = 1.1 + Math.random() * 2.2; }
+    hit *= Math.pow(0.04, dt); // fast decay
+    const bed = 0.32 + 0.18 * Math.sin(t * 0.9) + 0.1 * Math.sin(t * 0.37 + 1);
+    const flutter = 0.22 * Math.abs(Math.sin(t * 6.3) * Math.sin(t * 2.7 + 0.5));
+    const target = clamp(bed + flutter + hit * 0.75 + mouse.energy * 0.5, 0, 1.4);
+    level += (target - level) * Math.min(1, dt * 9);
+    return level;
+  }
+
+  function frame(now) {
     if (!running) return;
-    t += 0.016;
-    mouse.x += (mouse.tx - mouse.x) * 0.06;
-    mouse.y += (mouse.ty - mouse.y) * 0.06;
-    mouse.energy *= 0.96;
+    const dt = Math.min(0.05, last ? (now - last) / 1000 : 0.016);
+    last = now; t += dt;
+    const lv = audioLevel(dt);
+    mouse.energy *= Math.pow(0.3, dt);
+
+    // Autopilot path (slow figure-eight across the stage) blended with the mouse
+    const ax = 0.5 + 0.34 * Math.sin(t * 0.23) + 0.06 * Math.sin(t * 0.71);
+    const ay = 0.55 + 0.16 * Math.sin(t * 0.31 + 1.3);
+    const follow = clamp(1 - (t - mouse.lastMove - 2.5) / 2, 0, 1); // 1 = mouse, fades back after 2.5s
+    const tx = ax + (mouse.x - ax) * follow, ty = ay + (mouse.y - ay) * follow;
+    focus.x += (tx - focus.x) * Math.min(1, dt * 2.2);
+    focus.y += (ty - focus.y) * Math.min(1, dt * 2.2);
+    beam.style.setProperty("--mx", `${focus.x * 100}%`);
+    beam.style.setProperty("--my", `${focus.y * 100}%`);
+    beam.style.setProperty("--lv", lv.toFixed(3));
+    heroSlide.style.setProperty("--lv", lv.toFixed(3));
+
     ctx.clearRect(0, 0, w, h);
 
+    // Slow "camera" drift + parallax
+    const camX = Math.sin(t * 0.13) * 22 + (focus.x - 0.5) * 40;
+    const camY = Math.cos(t * 0.17) * 12 + (focus.y - 0.5) * 26;
+
+    // Projector sweep: a soft rotating light cone from the top
+    ctx.save();
+    const sweep = Math.sin(t * 0.25) * 0.55;
+    ctx.translate(w * 0.5, -h * 0.15);
+    ctx.rotate(sweep);
+    const cone = ctx.createLinearGradient(0, 0, 0, h * 1.3);
+    cone.addColorStop(0, `rgba(255,225,170,${0.10 + lv * 0.05})`);
+    cone.addColorStop(1, "rgba(255,225,170,0)");
+    ctx.fillStyle = cone;
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.03, 0); ctx.lineTo(w * 0.03, 0);
+    ctx.lineTo(w * 0.26, h * 1.3); ctx.lineTo(-w * 0.26, h * 1.3);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+
     // Dust in the projector light
-    const px = (mouse.x - 0.5) * 40, py = (mouse.y - 0.5) * 30;
     for (const p of particles) {
-      p.x += p.vx; p.y += p.vy; p.tw += 0.03;
+      p.x += p.vx * (1 + lv); p.y += p.vy * (1 + lv * 1.5); p.tw += 0.03;
       if (p.y < -10) { p.y = h + 10; p.x = Math.random() * w; }
       if (p.x < -10) p.x = w + 10; else if (p.x > w + 10) p.x = -10;
-      const x = p.x + px * p.depth, y = p.y + py * p.depth;
-      const dx = x - mouse.x * w, dy = y - mouse.y * h;
-      const near = Math.max(0, 1 - Math.hypot(dx, dy) / 320);
-      const alpha = p.a * (0.55 + 0.45 * Math.sin(p.tw)) + near * 0.5;
+      const x = p.x + camX * p.depth, y = p.y + camY * p.depth;
+      const dx = x - focus.x * w, dy = y - focus.y * h;
+      const near = Math.max(0, 1 - Math.hypot(dx, dy) / 360);
+      const alpha = p.a * (0.5 + 0.5 * Math.sin(p.tw)) + near * (0.35 + lv * 0.4);
       ctx.beginPath();
-      ctx.fillStyle = `rgba(245, 205, 130, ${alpha})`;
-      ctx.arc(x, y, p.r * (1 + near * 1.2), 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(245, 205, 130, ${Math.min(1, alpha)})`;
+      ctx.arc(x, y, p.r * (1 + near * (1 + lv)), 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // Soundwave lines along the lower third
-    const baseY = h * 0.8;
-    const amp = 10 + mouse.energy * 50 + (1 - Math.abs(mouse.y - 0.8)) * 14;
-    for (let layer = 0; layer < 3; layer++) {
+    // Soundwave: several breathing layers, strongest where the focus is
+    const baseY = h * 0.8 + camY * 0.3;
+    const amp = 12 + lv * 46;
+    for (let layer = 0; layer < 5; layer++) {
       ctx.beginPath();
-      const phase = t * (1.2 + layer * 0.4);
-      for (let x = 0; x <= w; x += 4) {
+      const phase = t * (1.6 + layer * 0.55);
+      const lf = 1 - layer * 0.14;
+      for (let x = 0; x <= w; x += 3) {
         const nx = x / w;
-        const focus = Math.exp(-Math.pow((nx - mouse.x) * 3.2, 2));
+        const f1 = Math.exp(-Math.pow((nx - focus.x) * 2.6, 2));
+        const f2 = 0.55 * Math.exp(-Math.pow((nx - (1 - focus.x)) * 3.4, 2));
         const env = Math.sin(nx * Math.PI);
+        const fo = f1 + f2;
         const y = baseY +
-          Math.sin(nx * 18 + phase + layer) * amp * focus * env +
-          Math.sin(nx * 42 - phase * 1.7) * amp * 0.25 * env * (0.4 + focus);
+          Math.sin(nx * (16 + layer * 3) + phase + layer) * amp * lf * fo * env +
+          Math.sin(nx * 47 - phase * 1.9) * amp * 0.22 * env * (0.35 + fo) +
+          Math.sin(nx * 5 + t * 0.6 + layer) * 6 * env;
         x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
       }
       const g = ctx.createLinearGradient(0, 0, w, 0);
-      const a = [0.55, 0.25, 0.12][layer];
+      const al = [0.75, 0.42, 0.26, 0.16, 0.1][layer] * (0.7 + lv * 0.4);
       g.addColorStop(0, "rgba(229,169,60,0)");
-      g.addColorStop(clamp(mouse.x - 0.25, 0.01, 0.98), `rgba(229,169,60,${a * 0.5})`);
-      g.addColorStop(clamp(mouse.x, 0.02, 0.98), `rgba(245,200,120,${a})`);
-      g.addColorStop(clamp(mouse.x + 0.25, 0.03, 0.99), `rgba(229,169,60,${a * 0.5})`);
+      g.addColorStop(clamp(focus.x - 0.28, 0.01, 0.97), `rgba(229,169,60,${al * 0.45})`);
+      g.addColorStop(clamp(focus.x, 0.02, 0.98), `rgba(255,214,140,${Math.min(1, al)})`);
+      g.addColorStop(clamp(focus.x + 0.28, 0.03, 0.99), `rgba(229,169,60,${al * 0.45})`);
       g.addColorStop(1, "rgba(229,169,60,0)");
       ctx.strokeStyle = g;
-      ctx.lineWidth = layer === 0 ? 1.6 : 1;
+      ctx.lineWidth = layer === 0 ? 2 : 1;
+      if (layer === 0) { ctx.shadowColor = "rgba(245,190,90,.7)"; ctx.shadowBlur = 12 + lv * 14; }
       ctx.stroke();
+      ctx.shadowBlur = 0;
     }
+
+    // Sparks fly up from the wave on every "hit"
+    if (hit > 0.65 && Math.random() < 0.5) {
+      for (let i = 0; i < 6; i++) sparks.push({
+        x: focus.x * w + (Math.random() - 0.5) * 160, y: baseY,
+        vx: (Math.random() - 0.5) * 1.4, vy: -Math.random() * 2.6 - 0.8, life: 1,
+      });
+    }
+    sparks = sparks.filter((s) => (s.life -= dt * 0.7) > 0);
+    for (const s of sparks) {
+      s.x += s.vx; s.y += s.vy; s.vy += 0.015;
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(255,220,150,${s.life * 0.9})`;
+      ctx.arc(s.x, s.y, 1.4 * s.life + 0.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     raf = requestAnimationFrame(frame);
   }
 
   window.addEventListener("pointermove", (e) => {
     if (current !== SLIDE.HERO) return;
     const nx = e.clientX / window.innerWidth, ny = e.clientY / window.innerHeight;
-    mouse.energy = clamp(mouse.energy + Math.hypot(nx - mouse.tx, ny - mouse.ty) * 4, 0, 1);
-    mouse.tx = nx; mouse.ty = ny;
-    beam.style.setProperty("--mx", `${nx * 100}%`);
-    beam.style.setProperty("--my", `${ny * 100}%`);
+    mouse.energy = clamp(mouse.energy + Math.hypot(nx - mouse.x, ny - mouse.y) * 4, 0, 1);
+    mouse.x = nx; mouse.y = ny; mouse.lastMove = t;
   });
   window.addEventListener("resize", () => running && resize());
 
-  const start = () => { if (running) return; running = true; resize(); raf = requestAnimationFrame(frame); };
+  const start = () => { if (running) return; running = true; last = 0; resize(); raf = requestAnimationFrame(frame); };
   const stop = () => { running = false; cancelAnimationFrame(raf); };
 
   $("#startBtn").addEventListener("click", () => goTo(SLIDE.LAYERS));
