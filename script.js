@@ -31,56 +31,43 @@ const SUBTITLES_FILE = "assets/subtitles.json";
 const NO_MUSIC_LABEL = "ללא מוזיקה (שקט מוחלט)";
 
 /* =====================================================================
-   CONFIG — Slide 4: "Guess the sound" flip cards (4–6 recommended)
-   - frontImage: frame/thumbnail from the video (front of the card)
-   - question:   text under the "?" on the front
-   - answer:     the real object/prop (back of the card, big text)
-   - sound:      what it sounded like on screen (back, small text)
-   - backImage:  photo of the prop (back of the card)
-   If an image file is missing the card shows a neat placeholder icon.
+   CONFIG — Slide 5: "Guess the sound" flip cards
+   - title:     shown on the front of the card, above the clip
+   - video:     the short clip on the front (press ▶ to play it WITH sound;
+                click anywhere else on the card to flip it)
+   - answer:    the real object/prop (back of the card, big text)
+   - sound:     small line under the answer — can be ""
+   - backImage: photo of the prop (back of the card); a missing file
+                shows a neat placeholder icon
    ===================================================================== */
 const GUESS_CARDS = [
   {
-    frontImage: "assets/cards/card1-front.jpg",
-    question: "ממה עשוי הצליל?",
-    answer: "תפוח אדמה ושקית קמח",
-    sound: "צעדים בשלג",
-    backImage: "assets/cards/card1-prop.jpg",
+    title: "בשר יוצא מהקופסא",
+    video: "assets/cards/clip1.mp4",
+    answer: "(כאן תופיע התשובה)",
+    sound: "",
+    backImage: "assets/cards/clip1-prop.jpg",
   },
   {
-    frontImage: "assets/cards/card2-front.jpg",
-    question: "ממה עשוי הצליל?",
-    answer: "כרוב שנשבר",
-    sound: "עצם נשברת",
-    backImage: "assets/cards/card2-prop.jpg",
+    title: "סידור הקציצות",
+    video: "assets/cards/clip2.mp4",
+    answer: "(כאן תופיע התשובה)",
+    sound: "",
+    backImage: "assets/cards/clip2-prop.jpg",
   },
   {
-    frontImage: "assets/cards/card3-front.jpg",
-    question: "ממה עשוי הצליל?",
-    answer: "שתי קליפות קוקוס",
-    sound: "פרסות סוס",
-    backImage: "assets/cards/card3-prop.jpg",
+    title: "משחקים עם המרית",
+    video: "assets/cards/clip3.mp4",
+    answer: "(כאן תופיע התשובה)",
+    sound: "",
+    backImage: "assets/cards/clip3-prop.jpg",
   },
   {
-    frontImage: "assets/cards/card4-front.jpg",
-    question: "ממה עשוי הצליל?",
-    answer: "מטריה נפתחת",
-    sound: "משק כנפי ציפור",
-    backImage: "assets/cards/card4-prop.jpg",
-  },
-  {
-    frontImage: "assets/cards/card5-front.jpg",
-    question: "ממה עשוי הצליל?",
-    answer: "צלופן מקומט",
-    sound: "אש מתפצפצת",
-    backImage: "assets/cards/card5-prop.jpg",
-  },
-  {
-    frontImage: "assets/cards/card6-front.jpg",
-    question: "ממה עשוי הצליל?",
-    answer: "קלטת וידאו ישנה",
-    sound: "הליכה בשדה עשב",
-    backImage: "assets/cards/card6-prop.jpg",
+    title: "סידור הלחמניות",
+    video: "assets/cards/clip4.mp4",
+    answer: "(כאן תופיע התשובה)",
+    sound: "",
+    backImage: "assets/cards/clip4-prop.jpg",
   },
 ];
 
@@ -144,7 +131,7 @@ function exitFs() {
    SLIDE NAVIGATION
    ===================================================================== */
 const slides = $$(".slide");
-const SLIDE = { HERO: 0, LAYERS: 1, INTRO: 2, GUESS: 3, STUDIO: 4 };
+const SLIDE = { HERO: 0, LAYERS: 1, INTRO: 2, SCENE: 3, GUESS: 4, STUDIO: 5 };
 let current = 0;
 const onLeaveHandlers = {};
 const onEnterHandlers = {};
@@ -237,6 +224,11 @@ document.addEventListener("keydown", (e) => {
     case SLIDE.INTRO:
       if (key === " ") { handled(); return introPlayer.toggle(); }
       if (key === "f" || key === "F") { handled(); return introPlayer.toggleFs(); }
+      break;
+
+    case SLIDE.SCENE:
+      if (key === " ") { handled(); return scenePlayer.toggle(); }
+      if (key === "f" || key === "F") { handled(); return scenePlayer.toggleFs(); }
       break;
 
     case SLIDE.GUESS:
@@ -456,7 +448,9 @@ function createPlayer(root, video) {
 }
 
 const introPlayer = createPlayer($("#introPlayer"), $("#introVideo"));
+const scenePlayer = createPlayer($("#scenePlayer"), $("#sceneVideo"));
 const guessPlayer = createPlayer($("#guessPlayer"), $("#guessVideo"));
+onLeaveHandlers[SLIDE.SCENE] = scenePlayer.pause;
 onLeaveHandlers[SLIDE.INTRO] = introPlayer.pause;
 onLeaveHandlers[SLIDE.GUESS] = guessPlayer.pause;
 
@@ -468,31 +462,64 @@ onLeaveHandlers[SLIDE.GUESS] = guessPlayer.pause;
   const imgIcon = `<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>`;
   const esc = (s = "") => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+  grid.classList.toggle("cards-4", GUESS_CARDS.length === 4);
+  const playIcon = `<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>`;
+  const pauseIcon = `<svg viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>`;
+  const allVideos = [];
+
   GUESS_CARDS.forEach((card, i) => {
-    const el = document.createElement("button");
-    el.type = "button";
+    const el = document.createElement("div");
     el.className = "flip-card";
-    el.setAttribute("aria-label", `כרטיס ${i + 1}`);
+    el.tabIndex = 0;
+    el.setAttribute("role", "button");
+    el.setAttribute("aria-label", `כרטיס ${i + 1}: ${card.title || ""}`);
     el.innerHTML = `
       <div class="flip-inner">
         <div class="flip-face flip-front">
-          <span class="flip-num en">SFX ${pad(i + 1)}</span>
-          <div class="flip-img"><img src="${esc(card.frontImage)}" alt="" loading="lazy" /><div class="img-fallback">${imgIcon}</div></div>
-          <div class="flip-q">?</div>
-          <div class="flip-caption">${esc(card.question || "ממה עשוי הצליל?")}</div>
+          <div class="flip-title">${esc(card.title || "")}</div>
+          <div class="flip-img flip-video">
+            <video src="${esc(card.video)}#t=0.1" preload="auto" playsinline></video>
+            <button type="button" class="clip-play" aria-label="נגן את הקטע">${playIcon}${pauseIcon}</button>
+            <span class="flip-num en">SFX ${pad(i + 1)}</span>
+          </div>
+          <div class="flip-caption">ממה עשוי הצליל? <span class="flip-hint">לחצו על הכרטיס כדי לגלות</span></div>
         </div>
         <div class="flip-face flip-back">
           <div class="flip-img"><img src="${esc(card.backImage)}" alt="${esc(card.answer)}" loading="lazy" /><div class="img-fallback">${imgIcon}</div></div>
           <div class="flip-caption">
+            <div class="flip-sound">${esc(card.title || "")}</div>
             <div class="flip-answer">${esc(card.answer)}</div>
-            ${card.sound ? `<div class="flip-sound">הצליל: ${esc(card.sound)}</div>` : ""}
+            ${card.sound ? `<div class="flip-sound">${esc(card.sound)}</div>` : ""}
           </div>
         </div>
       </div>`;
     $$("img", el).forEach((img) => img.addEventListener("error", () => img.parentElement.classList.add("no-img")));
-    el.addEventListener("click", () => el.classList.toggle("is-flipped"));
+
+    const video = $("video", el), btn = $(".clip-play", el), box = $(".flip-video", el);
+    allVideos.push(video);
+    const togglePlay = () => {
+      if (video.paused || video.ended) {
+        allVideos.forEach((v) => v !== video && v.pause());
+        guessPlayer.pause();
+        if (video.ended) video.currentTime = 0;
+        video.play().catch(() => {});
+      } else video.pause();
+    };
+    video.addEventListener("play", () => box.classList.add("is-playing"));
+    video.addEventListener("pause", () => box.classList.remove("is-playing"));
+    video.addEventListener("ended", () => box.classList.remove("is-playing"));
+    btn.addEventListener("click", (e) => { e.stopPropagation(); togglePlay(); });
+    video.addEventListener("click", (e) => { e.stopPropagation(); togglePlay(); });
+
+    const flip = () => { video.pause(); el.classList.toggle("is-flipped"); };
+    el.addEventListener("click", flip);
+    el.addEventListener("keydown", (e) => {
+      if (e.target !== el) return;
+      if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); flip(); }
+    });
     grid.appendChild(el);
   });
+  onLeaveHandlers[SLIDE.GUESS] = () => { guessPlayer.pause(); allVideos.forEach((v) => v.pause()); };
 
   const flipAll = $("#flipAllBtn");
   flipAll.addEventListener("click", () => {

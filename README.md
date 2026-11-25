@@ -16,18 +16,19 @@ Netlify and GitHub Pages both support it.)
 | Where | Key | Action |
 |---|---|---|
 | All slides | ← / → | Next / previous slide (Hebrew RTL: ← = next; change in `SETTINGS.rtlArrows`) |
-| All slides | PageDown / PageUp | Next / previous slide (also works on slide 5) |
+| All slides | PageDown / PageUp | Next / previous slide (also works on slide 6) |
 | Slide 1 | Enter / Space | Start workshop |
 | Slide 2 | Space / Enter | Reveal next layer |
-| Slides 3–4 | Space | Play / pause video (F = fullscreen on slide 3) |
-| Slide 5 | Space | Play / pause video + selected music |
-| Slide 5 | ← / → | Back / forward 1 second |
-| Slide 5 | F, double‑click | Fullscreen monitor (with subtitles); Esc exits |
-| Slide 5 | S (or the eye next to the subtitle track) | Show / hide all subtitles, also in fullscreen. They start hidden on every load (`SETTINGS.subtitlesVisibleAtStart`) |
-| Slide 5 | I / O | Set the timed-subtitle start / end to the playhead |
-| Slide 5 | Esc in a text box | Leave the box and return keyboard control |
+| Slide 4 | Space / F | Play the full-screen scene video / real fullscreen |
+| Slides 3–5 | Space | Play / pause video (F = fullscreen on slide 3) |
+| Slide 6 | Space | Play / pause video + selected music |
+| Slide 6 | ← / → | Back / forward 1 second |
+| Slide 6 | F, double‑click | Fullscreen monitor (with subtitles); Esc exits |
+| Slide 6 | S (or the eye next to the subtitle track) | Show / hide all subtitles, also in fullscreen. They start hidden on every load (`SETTINGS.subtitlesVisibleAtStart`) |
+| Slide 6 | I / O | Set the timed-subtitle start / end to the playhead |
+| Slide 6 | Esc in a text box | Leave the box and return keyboard control |
 
-## Timed subtitles (slide 5)
+## Timed subtitles (slide 6)
 Open the **כתוביות מתוזמנות** tab: move the playhead, press **IN**, type the line, press **OUT**, then **הוסף שורה** (or Enter).
 Each line becomes a purple clip on the timeline: drag it to move it, drag its edges to trim the start/end, and use × (or select it and press Delete) to remove it. Click a clip or a list row to jump to it and edit the text. Typing a line and pressing Enter places it at the playhead (2 s long).
 Edits are kept in your browser until you share them: press **ייצוא JSON** and upload the downloaded

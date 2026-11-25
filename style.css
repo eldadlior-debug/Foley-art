@@ -731,3 +731,47 @@ body.on-hero .navbar:hover { opacity: 1; }
 .subs-off .tl-eye .slash { display: inline; }
 .subs-off .tl-cue { opacity: .4; }
 .monitor.subs-off .subtitle-layer { visibility: hidden; }
+
+
+/* =====================================================================
+   SLIDE 4 — Full-screen scene video
+   ===================================================================== */
+.slide-scene { padding: var(--bar-h) 0 var(--nav-h); }
+.theater.theater-full {
+  width: 100%; height: 100%; max-width: none; margin: 0; border-radius: 0; border: 0;
+  display: flex; flex-direction: column; box-shadow: none;
+}
+.theater-full .theater-frame { flex: 1; min-height: 0; aspect-ratio: auto; }
+
+/* =====================================================================
+   SLIDE 5 — Video flip cards
+   ===================================================================== */
+.card-grid.cards-4 { grid-template-columns: repeat(2, 1fr); }
+.card-grid.cards-4 .flip-card { aspect-ratio: 16 / 12.6; }
+.flip-title {
+  padding: 9px 14px; font-size: clamp(15px, 1.3vw, 19px); font-weight: 700; text-align: center;
+  color: var(--gold-soft); background: rgba(10,10,12,.85); border-bottom: 1px solid var(--glass-border);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.flip-video { background: #000; }
+.flip-video video { width: 100%; height: 100%; object-fit: cover; display: block; cursor: pointer; }
+.flip-front .flip-video::after { display: none; }
+.clip-play {
+  position: absolute; inset: 0; margin: auto; width: 58px; height: 58px; border-radius: 50%; z-index: 3;
+  border: 1px solid rgba(229,169,60,.7); background: rgba(10,10,12,.6); color: var(--gold);
+  display: grid; place-items: center; cursor: pointer; backdrop-filter: blur(6px);
+  transition: transform .2s, opacity .3s, background .2s;
+}
+.clip-play svg { width: 24px; height: 24px; fill: currentColor; stroke: none; }
+.clip-play svg + svg { display: none; }
+.clip-play:hover { transform: scale(1.08); background: rgba(229,169,60,.2); }
+.flip-video.is-playing .clip-play { opacity: 0; }
+.flip-video.is-playing:hover .clip-play { opacity: .85; }
+.flip-video.is-playing .clip-play svg:first-child { display: none; }
+.flip-video.is-playing .clip-play svg + svg { display: block; }
+.flip-front .flip-caption { font-weight: 600; }
+.flip-hint { display: block; font-size: 11px; font-weight: 400; color: var(--text-faint); margin-top: 2px; }
+.flip-back .flip-caption .flip-sound:first-child { margin: 0 0 2px; color: var(--gold); }
+
+/* Slide 5: hide the side player when assets/guess-example.mp4 is not there */
+.mini-monitor.has-missing { display: none; }

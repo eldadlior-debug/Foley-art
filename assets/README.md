@@ -6,10 +6,11 @@ Drop your files into this folder using **exactly** these names
 | Slide | File | Notes |
 |---|---|---|
 | 3 · סרטון מבוא | `assets/intro-foley.mp4` | Your intro video (H.264 MP4 plays everywhere). Optional poster frame: `assets/intro-poster.jpg` |
-| 4 · נחשו ממה עשוי הצליל | `assets/guess-example.mp4` | The short clip shown beside the cards |
-| 4 · cards | `assets/cards/card1-front.jpg` … `card6-front.jpg` | Front of each card: a frame / thumbnail from the clip |
-| 4 · cards | `assets/cards/card1-prop.jpg` … `card6-prop.jpg` | Back of each card: photo of the real prop |
-| 5 · אולפן חי | `assets/silent-scene.mp4` | Played muted on purpose |
+| 5 · נחשו ממה עשוי הצליל | `assets/guess-example.mp4` | The short clip shown beside the cards |
+| 5 · cards | `assets/cards/clip1.mp4` … `clip4.mp4` | Short clip on the front of each card (plays with sound) |
+| 5 · cards | `assets/cards/clip1-prop.jpg` … `clip4-prop.jpg` | Back of each card: photo of the real prop |
+| 4 · סצנה במסך מלא | `assets/scene-video.mp4` | The 20-second scene before the guess game |
+| 6 · אולפן חי | `assets/silent-scene.mp4` | Played muted on purpose |
 | 5 · subtitles | `assets/subtitles.json` | Timed subtitles. Created by the ייצוא JSON button on slide 5 |
 | 5 · music | `assets/track1.mp3`, `assets/track2.mp3`, `assets/track3.mp3` | The three score options |
 

@@ -185,7 +185,49 @@
     </section>
 
     <!-- =========================================================
-         SLIDE 4 — Guess the sound
+         SLIDE 4 — Full-screen scene video (before the guess game)
+         VIDEO FILE: assets/scene-video.mp4
+         ========================================================= -->
+    <section class="slide slide-scene" data-title="הסצנה" aria-label="הסצנה">
+      <div class="theater theater-full" id="scenePlayer">
+        <div class="theater-frame">
+          <video id="sceneVideo" preload="auto" playsinline>
+            <source src="assets/scene-video.mp4" type="video/mp4" />
+          </video>
+          <button class="theater-bigplay" type="button" aria-label="נגן">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <div class="media-missing" hidden>
+            <div class="media-missing-title en">NO SIGNAL</div>
+            <code>assets/scene-video.mp4</code>
+          </div>
+        </div>
+        <div class="player-controls" dir="ltr">
+          <button class="pc-btn" data-act="play" type="button" aria-label="Play / Pause">
+            <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            <svg class="i-pause" viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+          </button>
+          <span class="pc-time" data-el="cur">00:00</span>
+          <div class="pc-progress" data-el="bar" role="slider" aria-label="Seek" tabindex="0">
+            <div class="pc-buffer" data-el="buf"></div>
+            <div class="pc-fill" data-el="fill"></div>
+            <div class="pc-thumb" data-el="thumb"></div>
+          </div>
+          <span class="pc-time" data-el="dur">00:00</span>
+          <button class="pc-btn" data-act="mute" type="button" aria-label="Mute">
+            <svg class="i-vol" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>
+            <svg class="i-mute" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM16 9l5 6M21 9l-5 6"/></svg>
+          </button>
+          <input class="pc-volume" data-el="vol" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume" />
+          <button class="pc-btn" data-act="fs" type="button" aria-label="Fullscreen">
+            <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         SLIDE 5 — Guess the sound
          VIDEO FILE: assets/guess-example.mp4
          CARDS: edit the GUESS_CARDS list at the top of script.js
          ========================================================= -->
@@ -243,7 +285,7 @@
     </section>
 
     <!-- =========================================================
-         SLIDE 5 — Live Foley & scoring studio
+         SLIDE 6 — Live Foley & scoring studio
          VIDEO FILE: assets/silent-scene.mp4
          MUSIC FILES: assets/track1.mp3, track2.mp3, track3.mp3
          TRACK TITLES: edit MUSIC_TRACKS at the top of script.js
