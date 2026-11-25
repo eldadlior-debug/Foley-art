@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>אמנות הפולי | The Foley Art</title>
+  <meta name="description" content="סדנת אמנות הפולי בהנחיית ליאור טל" />
+  <meta name="theme-color" content="#0A0A0C" />
+
+  <!-- Fonts: Heebo (Hebrew), Cinzel + Montserrat (English display) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Heebo:wght@300;400;500;700;800;900&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===== Cinematic overlays (film grain + vignette) ===== -->
+  <div class="grain" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <!-- ===== Top studio bar ===== -->
+  <header class="studio-bar" aria-hidden="true">
+    <div class="rec"><span class="rec-dot"></span>REC</div>
+    <div class="studio-bar-title">THE FOLEY ART · STUDIO</div>
+    <div class="studio-bar-count"><span id="slideNum">01</span> / <span id="slideTotal">05</span></div>
+  </header>
+
+  <main class="deck" id="deck">
+
+    <!-- =========================================================
+         SLIDE 1 — Opening title / lobby
+         ========================================================= -->
+    <section class="slide slide-hero is-active" data-title="פתיחה" aria-label="פתיחה">
+      <canvas id="heroCanvas" class="hero-canvas" aria-hidden="true"></canvas>
+      <div class="hero-beam" aria-hidden="true"></div>
+
+      <div class="hero-content">
+        <div class="hero-kicker">
+          <span class="rec-dot"></span>
+          <span class="en">WORKSHOP · LIVE SESSION</span>
+        </div>
+        <h1 class="hero-title">אמנות הפולי</h1>
+        <div class="hero-sub en">THE FOLEY ART</div>
+        <div class="hero-line" aria-hidden="true"></div>
+        <p class="hero-host">מנחה: <strong>ליאור טל</strong></p>
+        <button class="btn btn-gold btn-lg" id="startBtn" type="button">
+          <span>התחל סדנה</span>
+          <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         SLIDE 2 — What makes up a soundtrack?
+         ========================================================= -->
+    <section class="slide slide-layers" data-title="ממה מורכב פסקול?" aria-label="ממה מורכב פסקול">
+      <div class="slide-inner">
+        <div class="slide-head">
+          <span class="eyebrow en">CHAPTER 01 · THE MIX</span>
+          <h2 class="slide-title">ממה מורכב פסקול?</h2>
+        </div>
+
+        <div class="console" id="layerConsole">
+          <!-- Layer 1 -->
+          <article class="channel" data-layer="0">
+            <div class="channel-top">
+              <span class="channel-id en">CH 01</span>
+              <span class="channel-led"></span>
+            </div>
+            <div class="channel-icon">
+              <!-- microphone -->
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5M8.5 21.5h7"/></svg>
+            </div>
+            <h3 class="channel-name">דיבורים</h3>
+            <div class="channel-en en">DIALOGUE</div>
+            <div class="wave" data-seed="1"></div>
+            <div class="fader"><span class="fader-knob"></span></div>
+            <div class="channel-lock">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+            </div>
+          </article>
+
+          <!-- Layer 2 -->
+          <article class="channel" data-layer="1">
+            <div class="channel-top">
+              <span class="channel-id en">CH 02</span>
+              <span class="channel-led"></span>
+            </div>
+            <div class="channel-icon">
+              <!-- music note -->
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>
+            </div>
+            <h3 class="channel-name">מוסיקה</h3>
+            <div class="channel-en en">MUSIC</div>
+            <div class="wave" data-seed="2"></div>
+            <div class="fader"><span class="fader-knob"></span></div>
+            <div class="channel-lock">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+            </div>
+          </article>
+
+          <!-- Layer 3 -->
+          <article class="channel" data-layer="2">
+            <div class="channel-top">
+              <span class="channel-id en">CH 03</span>
+              <span class="channel-led"></span>
+            </div>
+            <div class="channel-icon">
+              <!-- footsteps / impact -->
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.8 5.2L19 6l-3 4.5L21 13l-5.4.8L16 19l-4-3.4L8 19l.4-5.2L3 13l5-2.5L5 6l5.2 1.2z"/></svg>
+            </div>
+            <h3 class="channel-name">אפקטים</h3>
+            <div class="channel-en en">SOUND EFFECTS · SFX</div>
+            <div class="wave" data-seed="3"></div>
+            <div class="fader"><span class="fader-knob"></span></div>
+            <div class="channel-lock">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+            </div>
+          </article>
+        </div>
+
+        <div class="layers-actions">
+          <button class="btn btn-gold" id="revealBtn" type="button">
+            <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            <span id="revealLabel">חשוף את השכבה הבאה</span>
+          </button>
+          <button class="btn btn-ghost" id="resetLayersBtn" type="button" hidden>אפס</button>
+          <span class="hint">לחצו <kbd>Space</kbd> או <kbd>Enter</kbd></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         SLIDE 3 — Intro video
+         VIDEO FILE: assets/intro-foley.mp4
+         ========================================================= -->
+    <section class="slide slide-intro" data-title="סרטון מבוא" aria-label="סרטון מבוא">
+      <div class="slide-inner">
+        <div class="slide-head">
+          <span class="eyebrow en">CHAPTER 02 · BEHIND THE SCENES</span>
+          <h2 class="slide-title">מאחורי הקלעים של הפולי</h2>
+        </div>
+
+        <div class="theater" id="introPlayer">
+          <div class="theater-frame">
+            <!-- Drop your file at assets/intro-foley.mp4 (optional poster: assets/intro-poster.jpg) -->
+            <video id="introVideo" preload="metadata" playsinline poster="assets/intro-poster.jpg">
+              <source src="assets/intro-foley.mp4" type="video/mp4" />
+            </video>
+            <button class="theater-bigplay" id="introBigPlay" type="button" aria-label="נגן">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <div class="media-missing" hidden>
+              <div class="media-missing-title en">NO SIGNAL</div>
+              <p>הניחו את קובץ הווידאו בתיקייה:</p>
+              <code>assets/intro-foley.mp4</code>
+            </div>
+          </div>
+
+          <div class="player-controls" dir="ltr">
+            <button class="pc-btn" data-act="play" type="button" aria-label="Play / Pause">
+              <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              <svg class="i-pause" viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+            </button>
+            <span class="pc-time" data-el="cur">00:00</span>
+            <div class="pc-progress" data-el="bar" role="slider" aria-label="Seek" tabindex="0">
+              <div class="pc-buffer" data-el="buf"></div>
+              <div class="pc-fill" data-el="fill"></div>
+              <div class="pc-thumb" data-el="thumb"></div>
+            </div>
+            <span class="pc-time" data-el="dur">00:00</span>
+            <button class="pc-btn" data-act="mute" type="button" aria-label="Mute">
+              <svg class="i-vol" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>
+              <svg class="i-mute" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM16 9l5 6M21 9l-5 6"/></svg>
+            </button>
+            <input class="pc-volume" data-el="vol" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume" />
+            <button class="pc-btn" data-act="fs" type="button" aria-label="Fullscreen">
+              <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         SLIDE 4 — Guess the sound
+         VIDEO FILE: assets/guess-example.mp4
+         CARDS: edit the GUESS_CARDS list at the top of script.js
+         ========================================================= -->
+    <section class="slide slide-guess" data-title="נחשו ממה עשוי הצליל" aria-label="נחשו ממה עשוי הצליל">
+      <div class="slide-inner">
+        <div class="slide-head">
+          <span class="eyebrow en">CHAPTER 03 · THE CHALLENGE</span>
+          <h2 class="slide-title">נחשו ממה עשוי הצליל</h2>
+        </div>
+
+        <div class="guess-layout">
+          <aside class="guess-player">
+            <div class="mini-monitor" id="guessPlayer">
+              <div class="mini-monitor-top">
+                <span class="rec-dot"></span><span class="en">PLAYBACK</span>
+              </div>
+              <div class="theater-frame">
+                <video id="guessVideo" preload="metadata" playsinline>
+                  <source src="assets/guess-example.mp4" type="video/mp4" />
+                </video>
+                <button class="theater-bigplay small" type="button" aria-label="נגן">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                </button>
+                <div class="media-missing" hidden>
+                  <div class="media-missing-title en">NO SIGNAL</div>
+                  <code>assets/guess-example.mp4</code>
+                </div>
+              </div>
+              <div class="player-controls compact" dir="ltr">
+                <button class="pc-btn" data-act="play" type="button" aria-label="Play / Pause">
+                  <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  <svg class="i-pause" viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+                </button>
+                <span class="pc-time" data-el="cur">00:00</span>
+                <div class="pc-progress" data-el="bar" role="slider" aria-label="Seek" tabindex="0">
+                  <div class="pc-buffer" data-el="buf"></div>
+                  <div class="pc-fill" data-el="fill"></div>
+                  <div class="pc-thumb" data-el="thumb"></div>
+                </div>
+                <span class="pc-time" data-el="dur">00:00</span>
+                <button class="pc-btn" data-act="mute" type="button" aria-label="Mute">
+                  <svg class="i-vol" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>
+                  <svg class="i-mute" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM16 9l5 6M21 9l-5 6"/></svg>
+                </button>
+              </div>
+            </div>
+            <p class="guess-tip">צפו בקטע, הקשיבו היטב — ולחצו על כרטיס כדי לגלות מה באמת יצר את הצליל.</p>
+            <button class="btn btn-ghost btn-sm" id="flipAllBtn" type="button">הפוך את כל הכרטיסים</button>
+          </aside>
+
+          <!-- Cards are generated from GUESS_CARDS in script.js -->
+          <div class="card-grid" id="cardGrid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         SLIDE 5 — Live Foley & scoring studio
+         VIDEO FILE: assets/silent-scene.mp4
+         MUSIC FILES: assets/track1.mp3, track2.mp3, track3.mp3
+         TRACK TITLES: edit MUSIC_TRACKS at the top of script.js
+         ========================================================= -->
+    <section class="slide slide-studio" data-title="אולפן פולי ומוזיקה חי" aria-label="אולפן פולי ומוזיקה חי">
+      <div class="studio">
+
+        <!-- Monitor (this whole block goes fullscreen, subtitles included) -->
+        <div class="monitor" id="monitor">
+          <div class="monitor-bezel">
+            <div class="monitor-top">
+              <div class="monitor-tag"><span class="rec-dot"></span><span class="en">LIVE · FOLEY STAGE A</span></div>
+              <div class="monitor-tc en" id="monitorTc">00:00:00</div>
+              <div class="monitor-actions">
+                <span class="monitor-music en" id="monitorMusic">NO MUSIC</span>
+                <button class="pc-btn" id="fsBtn" type="button" aria-label="מסך מלא" title="מסך מלא (F)">
+                  <svg class="i-enter" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+                  <svg class="i-exit" viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="monitor-screen">
+              <!-- Drop your file at assets/silent-scene.mp4 (muted on purpose) -->
+              <video id="studioVideo" preload="auto" playsinline muted>
+                <source src="assets/silent-scene.mp4" type="video/mp4" />
+              </video>
+              <div class="subtitle-layer"><span class="subtitle" id="subtitleOut"></span></div>
+              <div class="monitor-state" id="monitorState" aria-hidden="true">
+                <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                <svg class="i-pause" viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+              </div>
+              <div class="media-missing" hidden>
+                <div class="media-missing-title en">NO SIGNAL</div>
+                <code>assets/silent-scene.mp4</code>
+              </div>
+              <div class="fs-hint en">SPACE play/pause · ← → 1s · F / ESC exit</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="timeline-wrap">
+          <div class="timeline-head" dir="ltr">
+            <button class="pc-btn" id="studioPlayBtn" type="button" aria-label="Play / Pause">
+              <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              <svg class="i-pause" viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+            </button>
+            <button class="pc-btn" id="stepBackBtn" type="button" aria-label="-1s">
+              <svg viewBox="0 0 24 24"><path d="M11 6l-6 6 6 6M19 6l-6 6 6 6"/></svg>
+            </button>
+            <button class="pc-btn" id="stepFwdBtn" type="button" aria-label="+1s">
+              <svg viewBox="0 0 24 24"><path d="M13 6l6 6-6 6M5 6l6 6-6 6"/></svg>
+            </button>
+            <div class="timecode"><span id="tcCurrent">00:00:00</span><span class="tc-sep">/</span><span id="tcDuration">00:00:00</span></div>
+            <div class="timeline-legend">SPACE ▶︎❚❚ &nbsp;·&nbsp; ← → ±1s &nbsp;·&nbsp; DRAG TO SCRUB</div>
+          </div>
+          <!-- Timeline is LTR on purpose (time flows left → right like CapCut) -->
+          <div class="timeline" id="timeline" dir="ltr" tabindex="0" role="slider" aria-label="Timeline" aria-valuemin="0">
+            <div class="tl-ruler" id="tlRuler"></div>
+            <div class="tl-track">
+              <div class="tl-clip" id="tlClip"><span class="en">silent-scene.mp4</span></div>
+            </div>
+            <div class="tl-track tl-track-audio">
+              <div class="tl-audio" id="tlAudio"><span class="en" id="tlAudioLabel">— no music —</span></div>
+            </div>
+            <div class="tl-progress" id="tlProgress"></div>
+            <div class="playhead" id="playhead"><span class="playhead-cap"></span></div>
+          </div>
+        </div>
+
+        <!-- Control deck -->
+        <div class="deck-controls">
+          <div class="panel" id="musicPanel">
+            <div class="panel-head">
+              <h3>בחירת מוזיקה</h3>
+              <label class="volume-row" title="עוצמת מוזיקה">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9zM16 8.5a5 5 0 0 1 0 7"/></svg>
+                <input type="range" id="musicVolume" min="0" max="1" step="0.01" value="0.8" dir="ltr" aria-label="עוצמת מוזיקה" />
+              </label>
+            </div>
+            <!-- Rows generated from MUSIC_TRACKS in script.js -->
+            <div class="track-list" id="trackList" role="radiogroup" aria-label="בחירת מוזיקה"></div>
+          </div>
+
+          <div class="panel" id="subsPanel">
+            <div class="panel-head">
+              <h3>כתוביות חיות</h3>
+              <span class="en">LIVE SUBTITLES</span>
+            </div>
+            <div class="subs-input-wrap">
+              <textarea id="subsInput" rows="2" placeholder="הקלד כתוביות בזמן אמת..." aria-label="כתוביות"></textarea>
+              <button class="btn btn-ghost btn-sm" id="subsClear" type="button">נקה</button>
+            </div>
+            <p class="panel-note">הטקסט מופיע מיד על המסך. <kbd>Esc</kbd> יוצא מתיבת ההקלדה וחוזר לשליטה במקלדת.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== Bottom navigation: progress + slide switcher ===== -->
+  <nav class="navbar" aria-label="ניווט שקפים">
+    <button class="nav-arrow" id="prevBtn" type="button" aria-label="השקף הקודם">
+      <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
+    </button>
+    <div class="nav-dots" id="navDots"></div>
+    <button class="nav-arrow" id="nextBtn" type="button" aria-label="השקף הבא">
+      <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>
+    </button>
+    <div class="nav-progress"><div class="nav-progress-fill" id="navProgress"></div></div>
+  </nav>
+
+  <script src="script.js"></script>
+</body>
+</html>
