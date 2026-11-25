@@ -23,6 +23,15 @@ Netlify and GitHub Pages both support it.)
 | Slide 5 | Space | Play / pause video + selected music |
 | Slide 5 | ← / → | Back / forward 1 second |
 | Slide 5 | F, double‑click | Fullscreen monitor (with subtitles); Esc exits |
-| Slide 5 | Esc in subtitle box | Leave the box and return keyboard control |
+| Slide 5 | I / O | Set the timed-subtitle start / end to the playhead |
+| Slide 5 | Esc in a text box | Leave the box and return keyboard control |
+
+## Timed subtitles (slide 5)
+Open the **כתוביות מתוזמנות** tab: move the playhead, press **IN**, type the line, press **OUT**, then **הוסף שורה** (or Enter).
+Click a line (in the list or the purple block on the timeline) to jump to it and edit it; the bin icon deletes it.
+Edits are kept in your browser until you share them: press **ייצוא JSON** and upload the downloaded
+`subtitles.json` into `assets/` on GitHub (replace the old file). Everyone then sees the same subtitles.
+**טען מהאתר** throws away your local edits and reloads the version from GitHub.
+Live-typed text (tab **כתוביות חיות**) always shows on top of the timed lines while the box isn't empty.
 
 Media files: see `assets/README.md`. Texts for cards and tracks: CONFIG block at the top of `script.js`.

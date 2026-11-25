@@ -10,6 +10,7 @@ Drop your files into this folder using **exactly** these names
 | 4 · cards | `assets/cards/card1-front.jpg` … `card6-front.jpg` | Front of each card: a frame / thumbnail from the clip |
 | 4 · cards | `assets/cards/card1-prop.jpg` … `card6-prop.jpg` | Back of each card: photo of the real prop |
 | 5 · אולפן חי | `assets/silent-scene.mp4` | Played muted on purpose |
+| 5 · subtitles | `assets/subtitles.json` | Timed subtitles. Created by the ייצוא JSON button on slide 5 |
 | 5 · music | `assets/track1.mp3`, `assets/track2.mp3`, `assets/track3.mp3` | The three score options |
 
 ## Changing texts

@@ -298,7 +298,7 @@
               <svg viewBox="0 0 24 24"><path d="M13 6l6 6-6 6M5 6l6 6-6 6"/></svg>
             </button>
             <div class="timecode"><span id="tcCurrent">00:00:00</span><span class="tc-sep">/</span><span id="tcDuration">00:00:00</span></div>
-            <div class="timeline-legend">SPACE ▶︎❚❚ &nbsp;·&nbsp; ← → ±1s &nbsp;·&nbsp; DRAG TO SCRUB</div>
+            <div class="timeline-legend">SPACE ▶︎❚❚ &nbsp;·&nbsp; ← → ±1s &nbsp;·&nbsp; I / O MARK &nbsp;·&nbsp; DRAG TO SCRUB</div>
           </div>
           <!-- Timeline is LTR on purpose (time flows left → right like CapCut) -->
           <div class="timeline" id="timeline" dir="ltr" tabindex="0" role="slider" aria-label="Timeline" aria-valuemin="0">
@@ -306,6 +306,7 @@
             <div class="tl-track">
               <div class="tl-clip" id="tlClip"><span class="en">silent-scene.mp4</span></div>
             </div>
+            <div class="tl-track tl-track-subs" id="tlSubs" title="כתוביות מתוזמנות"></div>
             <div class="tl-track tl-track-audio">
               <div class="tl-audio" id="tlAudio"><span class="en" id="tlAudioLabel">— no music —</span></div>
             </div>
@@ -330,14 +331,46 @@
 
           <div class="panel" id="subsPanel">
             <div class="panel-head">
-              <h3>כתוביות חיות</h3>
-              <span class="en">LIVE SUBTITLES</span>
+              <div class="subs-tabs" role="tablist">
+                <button class="subs-tab is-active" type="button" role="tab" data-tab="live">כתוביות חיות</button>
+                <button class="subs-tab" type="button" role="tab" data-tab="timed">כתוביות מתוזמנות <span class="cue-count" id="cueCount">0</span></button>
+              </div>
+              <span class="en">SUBTITLES</span>
             </div>
-            <div class="subs-input-wrap">
-              <textarea id="subsInput" rows="2" placeholder="הקלד כתוביות בזמן אמת..." aria-label="כתוביות"></textarea>
-              <button class="btn btn-ghost btn-sm" id="subsClear" type="button">נקה</button>
+
+            <!-- Tab 1: live typing (as before) -->
+            <div class="subs-pane is-active" data-pane="live">
+              <div class="subs-input-wrap">
+                <textarea id="subsInput" rows="2" placeholder="הקלד כתוביות בזמן אמת..." aria-label="כתוביות"></textarea>
+                <button class="btn btn-ghost btn-sm" id="subsClear" type="button">נקה</button>
+              </div>
+              <p class="panel-note">הטקסט מופיע מיד על המסך (וגובר על הכתוביות המתוזמנות). <kbd>Esc</kbd> יוצא מתיבת ההקלדה.</p>
             </div>
-            <p class="panel-note">הטקסט מופיע מיד על המסך. <kbd>Esc</kbd> יוצא מתיבת ההקלדה וחוזר לשליטה במקלדת.</p>
+
+            <!-- Tab 2: timed subtitle editor. Cues load from assets/subtitles.json -->
+            <div class="subs-pane" data-pane="timed">
+              <div class="cue-editor">
+                <input type="text" id="cueText" placeholder="טקסט השורה..." aria-label="טקסט הכתובית" autocomplete="off" />
+                <div class="cue-times" dir="ltr">
+                  <button class="cue-mark" type="button" id="markIn" title="התחלה = מיקום המחוג">IN</button>
+                  <input type="text" id="cueStart" value="00:00.00" aria-label="זמן התחלה" />
+                  <span class="cue-arrow">→</span>
+                  <input type="text" id="cueEnd" value="00:02.00" aria-label="זמן סוף" />
+                  <button class="cue-mark" type="button" id="markOut" title="סוף = מיקום המחוג">OUT</button>
+                </div>
+                <div class="cue-actions">
+                  <button class="btn btn-gold btn-sm" type="button" id="cueSave">הוסף שורה</button>
+                  <button class="btn btn-ghost btn-sm" type="button" id="cueCancel" hidden>ביטול</button>
+                </div>
+              </div>
+              <ol class="cue-list" id="cueList"></ol>
+              <div class="cue-footer">
+                <span class="cue-status" id="cueStatus"></span>
+                <button class="btn btn-ghost btn-xs" type="button" id="cueExport" title="הורדת subtitles.json להעלאה לגיטהאב">ייצוא JSON</button>
+                <label class="btn btn-ghost btn-xs" title="טעינת קובץ JSON">ייבוא<input type="file" id="cueImport" accept=".json,application/json" hidden /></label>
+                <button class="btn btn-ghost btn-xs" type="button" id="cueRevert" title="חזרה לגרסה ששמורה בגיטהאב">טען מהאתר</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

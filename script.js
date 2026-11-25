@@ -19,6 +19,14 @@ const MUSIC_TRACKS = [
   { title: "רצועה 3 — הרפתקה",    subtitle: "Adventure · Orchestral", src: "assets/track3.mp3" },
 ];
 
+/* =====================================================================
+   CONFIG — Slide 5: timed subtitles
+   The cues are stored in assets/subtitles.json (shared with everyone).
+   Edit them in the "כתוביות מתוזמנות" tab, press "ייצוא JSON", and
+   upload the downloaded file to assets/ in GitHub (replace the old one).
+   ===================================================================== */
+const SUBTITLES_FILE = "assets/subtitles.json";
+
 /* Label of the "no music" row (keeps the scene fully silent) */
 const NO_MUSIC_LABEL = "ללא מוזיקה (שקט מוחלט)";
 
@@ -209,6 +217,8 @@ document.addEventListener("keydown", (e) => {
       if (key === "f" || key === "F" || key === "כ") { handled(); return Studio.toggleFs(); }
       if (key === "Escape" && Studio.isFs()) { handled(); return Studio.toggleFs(false); }
       if (key === "Home") { handled(); return Studio.seek(0); }
+      if (key === "i" || key === "I" || key === "ן") { handled(); return Studio.markIn(); }
+      if (key === "o" || key === "O" || key === "ם") { handled(); return Studio.markOut(); }
       return;
 
     case SLIDE.HERO:
@@ -504,6 +514,8 @@ const Studio = (() => {
 
   video.muted = true; // the scene is silent on purpose
   let selected = -1;
+  let cues = [];          // timed subtitles: [{ start, end, text }]
+  let cueLayoutReady = false;
   let dragging = false, wasPlaying = false, raf = 0, pseudoFs = false;
 
   /* ----- Music ----- */
@@ -651,6 +663,7 @@ const Studio = (() => {
       }
     }
     ruler.appendChild(frag);
+    if (cueLayoutReady) renderCueTrack();
     timeline.setAttribute("aria-valuemax", String(Math.round(d)));
   }
   ruler.style.margin = "0"; // ruler is inside padding already
@@ -665,6 +678,7 @@ const Studio = (() => {
     tcDur.textContent = fmtTc(isFinite(video.duration) ? video.duration : 0);
     timeline.setAttribute("aria-valuenow", String(Math.round(t)));
     timeline.setAttribute("aria-valuetext", tc);
+    if (cueLayoutReady) updateSubtitle();
   }
 
   const timeAt = (clientX) => {
@@ -695,10 +709,217 @@ const Studio = (() => {
   }, { passive: false });
   window.addEventListener("resize", () => { buildRuler(); render(); });
 
-  /* ----- Subtitles ----- */
+  /* ----- Subtitles: live box + timed cues ----- */
   const input = $("#subsInput"), out = $("#subtitleOut");
-  input.addEventListener("input", () => (out.textContent = input.value));
-  $("#subsClear").addEventListener("click", () => { input.value = ""; out.textContent = ""; input.focus(); });
+  const cueText = $("#cueText"), cueStart = $("#cueStart"), cueEnd = $("#cueEnd");
+  const cueSave = $("#cueSave"), cueCancel = $("#cueCancel"), cueList = $("#cueList");
+  const cueStatus = $("#cueStatus"), cueCount = $("#cueCount"), tlSubs = $("#tlSubs");
+  const DRAFT_KEY = "foley-subtitles-draft";
+  let editing = -1;          // index of the cue being edited, -1 = new cue
+  let serverJson = "[]";     // what assets/subtitles.json currently holds
+  let lastShown = null;
+
+  const fmtCue = (t) => {
+    t = Math.max(0, t || 0);
+    const m = Math.floor(t / 60), sec = t - m * 60;
+    return `${pad(m)}:${sec.toFixed(2).padStart(5, "0")}`;
+  };
+  // Accepts 75 · 75.5 · 1:15 · 01:15.50 · 0:01:15.5
+  const parseCue = (str) => {
+    const parts = String(str).trim().replace(",", ".").split(":").map(Number);
+    if (!parts.length || parts.some((n) => !isFinite(n) || n < 0)) return NaN;
+    return parts.reduce((acc, n) => acc * 60 + n, 0);
+  };
+  const escHtml = (v) => String(v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const clean = (list) => (Array.isArray(list) ? list : [])
+    .map((c) => ({ start: Number(c.start), end: Number(c.end), text: String(c.text ?? "").trim() }))
+    .filter((c) => isFinite(c.start) && isFinite(c.end) && c.end > c.start && c.text)
+    .sort((a, b) => a.start - b.start);
+  const round = (t) => Math.round(t * 100) / 100;
+  const toJson = () => JSON.stringify(cues.map((c) => ({ start: round(c.start), end: round(c.end), text: c.text })), null, 2);
+
+  function activeCueIndex(t) {
+    for (let i = cues.length - 1; i >= 0; i--) if (t >= cues[i].start && t < cues[i].end) return i;
+    return -1;
+  }
+  function updateSubtitle() {
+    const live = input.value;
+    const idx = activeCueIndex(video.currentTime || 0);
+    const text = live.trim() ? live : idx >= 0 ? cues[idx].text : "";
+    if (out.textContent !== text) out.textContent = text;
+    if (idx !== lastShown) {
+      lastShown = idx;
+      $$(".cue-item", cueList).forEach((li, i) => li.classList.toggle("is-now", i === idx));
+      $$(".tl-cue", tlSubs).forEach((b, i) => b.classList.toggle("is-now", i === idx));
+    }
+  }
+
+  function renderCueTrack() {
+    const d = duration();
+    tlSubs.innerHTML = "";
+    cues.forEach((c, i) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "tl-cue" + (i === editing ? " is-editing" : "");
+      b.style.left = `${clamp(c.start / d, 0, 1) * 100}%`;
+      b.style.width = `${Math.max(0.4, (clamp(c.end, 0, d) - clamp(c.start, 0, d)) / d * 100)}%`;
+      b.title = `${fmtCue(c.start)} → ${fmtCue(c.end)}  ${c.text}`;
+      b.innerHTML = `<span>${escHtml(c.text)}</span>`;
+      b.addEventListener("pointerdown", (e) => e.stopPropagation()); // don't start a scrub
+      b.addEventListener("click", () => { seek(c.start + 0.01); startEdit(i); });
+      tlSubs.appendChild(b);
+    });
+    if (!cues.length) tlSubs.innerHTML = `<span class="tl-subs-empty">— אין כתוביות מתוזמנות —</span>`;
+  }
+
+  function renderCueList() {
+    cueCount.textContent = cues.length;
+    cueList.innerHTML = "";
+    cues.forEach((c, i) => {
+      const li = document.createElement("li");
+      li.className = "cue-item" + (i === editing ? " is-editing" : "");
+      li.innerHTML = `
+        <button type="button" class="cue-time" dir="ltr" title="קפיצה לזמן">${fmtCue(c.start)} → ${fmtCue(c.end)}</button>
+        <span class="cue-line">${escHtml(c.text)}</span>
+        <button type="button" class="cue-icon" data-a="edit" title="עריכה" aria-label="עריכה"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button>
+        <button type="button" class="cue-icon danger" data-a="del" title="מחיקה" aria-label="מחיקה"><svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/></svg></button>`;
+      $(".cue-time", li).addEventListener("click", () => seek(c.start + 0.01));
+      $('[data-a="edit"]', li).addEventListener("click", () => { seek(c.start + 0.01); startEdit(i); });
+      $('[data-a="del"]', li).addEventListener("click", () => deleteCue(i));
+      cueList.appendChild(li);
+    });
+    if (!cues.length) cueList.innerHTML = `<li class="cue-empty">עדיין אין שורות. הזיזו את המחוג, לחצו IN, כתבו טקסט, לחצו OUT ואז "הוסף שורה".</li>`;
+  }
+
+  function refreshCues(save = true) {
+    lastShown = null;
+    renderCueList();
+    renderCueTrack();
+    updateSubtitle();
+    if (save) {
+      const json = toJson();
+      try { json === serverJson ? localStorage.removeItem(DRAFT_KEY) : localStorage.setItem(DRAFT_KEY, json); } catch (_) {}
+    }
+    updateStatus();
+  }
+  function updateStatus() {
+    const dirty = toJson() !== serverJson;
+    cueStatus.textContent = dirty ? "● שינויים שלא נשמרו בגיטהאב" : "✓ תואם לקובץ באתר";
+    cueStatus.classList.toggle("dirty", dirty);
+  }
+
+  function resetForm(nextStart) {
+    editing = -1;
+    cueText.value = "";
+    const s0 = nextStart ?? video.currentTime ?? 0;
+    cueStart.value = fmtCue(s0);
+    cueEnd.value = fmtCue(Math.min(s0 + 2, duration()));
+    cueSave.textContent = "הוסף שורה";
+    cueCancel.hidden = true;
+  }
+  function startEdit(i) {
+    editing = i;
+    const c = cues[i];
+    cueText.value = c.text;
+    cueStart.value = fmtCue(c.start);
+    cueEnd.value = fmtCue(c.end);
+    cueSave.textContent = "עדכן שורה";
+    cueCancel.hidden = false;
+    switchTab("timed");
+    refreshCues(false);
+    $$(".cue-item", cueList)[i]?.scrollIntoView({ block: "nearest" });
+  }
+  function flagError(el) { el.classList.remove("err"); void el.offsetWidth; el.classList.add("err"); }
+  function saveCue() {
+    const text = cueText.value.trim();
+    const start = parseCue(cueStart.value), end = parseCue(cueEnd.value);
+    if (!text) return flagError(cueText), cueText.focus();
+    if (!isFinite(start)) return flagError(cueStart);
+    if (!isFinite(end) || end <= start) return flagError(cueEnd);
+    const cue = { start, end, text };
+    if (editing >= 0) cues[editing] = cue; else cues.push(cue);
+    cues = clean(cues);
+    resetForm(end);
+    refreshCues();
+    cueText.focus();
+  }
+  function deleteCue(i) {
+    cues.splice(i, 1);
+    if (editing === i) resetForm(); else if (editing > i) editing--;
+    refreshCues();
+  }
+  function markIn() {
+    const t = video.currentTime || 0;
+    cueStart.value = fmtCue(t);
+    if (!(parseCue(cueEnd.value) > t)) cueEnd.value = fmtCue(Math.min(t + 2, duration()));
+    switchTab("timed");
+  }
+  function markOut() {
+    const t = video.currentTime || 0;
+    cueEnd.value = fmtCue(t);
+    switchTab("timed");
+  }
+
+  function switchTab(name) {
+    $$(".subs-tab").forEach((b) => b.classList.toggle("is-active", b.dataset.tab === name));
+    $$(".subs-pane").forEach((p) => p.classList.toggle("is-active", p.dataset.pane === name));
+  }
+  $$(".subs-tab").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
+
+  input.addEventListener("input", updateSubtitle);
+  $("#subsClear").addEventListener("click", () => { input.value = ""; updateSubtitle(); input.focus(); });
+  $("#markIn").addEventListener("click", markIn);
+  $("#markOut").addEventListener("click", markOut);
+  cueSave.addEventListener("click", saveCue);
+  cueCancel.addEventListener("click", () => { resetForm(); refreshCues(false); });
+  [cueText, cueStart, cueEnd].forEach((el) => el.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); saveCue(); }
+  }));
+  [cueStart, cueEnd].forEach((el) => el.addEventListener("blur", () => {
+    const t = parseCue(el.value); if (isFinite(t)) el.value = fmtCue(t);
+  }));
+
+  // Export → download subtitles.json (upload it to assets/ in GitHub)
+  $("#cueExport").addEventListener("click", () => {
+    const blob = new Blob([toJson() + "\n"], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "subtitles.json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  });
+  $("#cueImport").addEventListener("change", (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    file.text().then((txt) => { cues = clean(JSON.parse(txt)); resetForm(); refreshCues(); })
+      .catch(() => alertStatus("הקובץ אינו JSON תקין"));
+    e.target.value = "";
+  });
+  $("#cueRevert").addEventListener("click", () => {
+    try { localStorage.removeItem(DRAFT_KEY); } catch (_) {}
+    cues = clean(JSON.parse(serverJson)); resetForm(); refreshCues(false);
+  });
+  function alertStatus(msg) { cueStatus.textContent = msg; cueStatus.classList.add("dirty"); }
+
+  // Load: assets/subtitles.json (shared, from GitHub) — a local unsaved draft wins if there is one
+  function loadCues() {
+    let draft = null;
+    try { draft = localStorage.getItem(DRAFT_KEY); } catch (_) {}
+    const apply = (fromServer) => {
+      serverJson = JSON.stringify(clean(fromServer).map((c) => ({ start: round(c.start), end: round(c.end), text: c.text })), null, 2);
+      let list = fromServer;
+      if (draft) { try { list = JSON.parse(draft); } catch (_) {} }
+      cues = clean(list);
+      refreshCues(false);
+    };
+    fetch(SUBTITLES_FILE, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : []))
+      .then(apply)
+      .catch(() => apply(typeof SUBTITLES_FALLBACK !== "undefined" ? SUBTITLES_FALLBACK : []));
+  }
+  cueLayoutReady = true;
+  resetForm(0);
+  refreshCues(false);
+  loadCues();
 
   /* ----- Fullscreen (monitor + subtitles) ----- */
   let hintTimer = 0;
@@ -732,7 +953,7 @@ const Studio = (() => {
   render();
 
   return {
-    toggle, step, seek, toggleFs, isFs,
+    toggle, step, seek, toggleFs, isFs, markIn, markOut,
     enter: () => { requestAnimationFrame(() => { buildRuler(); render(); }); },
     leave: () => { video.pause(); pauseAudio(); if (isFs()) toggleFs(false); },
   };

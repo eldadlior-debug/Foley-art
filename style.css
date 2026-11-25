@@ -392,7 +392,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round
 .slide-studio { padding: calc(var(--bar-h) + 4px) 28px calc(var(--nav-h) + 8px); align-items: stretch; }
 .studio { width: min(1400px, 100%); margin: 0 auto; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
 
-.monitor { height: 50vh; min-height: 220px; display: flex; justify-content: center; }
+.monitor { height: 50vh; min-height: 200px; display: flex; justify-content: center; }
 .monitor-bezel {
   height: 100%; aspect-ratio: 16 / 9.9; max-width: 100%;
   display: flex; flex-direction: column;
@@ -625,3 +625,75 @@ body.on-hero .navbar:hover { opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* =====================================================================
+   SLIDE 5 — Subtitle tabs + timed subtitle editor
+   ===================================================================== */
+.subs-tabs { display: flex; gap: 4px; padding: 3px; border-radius: 10px; background: rgba(0,0,0,.3); border: 1px solid var(--glass-border); }
+.subs-tab {
+  border: 0; background: transparent; cursor: pointer; padding: 5px 12px; border-radius: 7px;
+  font-size: 14px; font-weight: 600; color: var(--text-dim); display: inline-flex; align-items: center; gap: 6px;
+  transition: background .2s, color .2s;
+}
+.subs-tab:hover { color: var(--text); }
+.subs-tab.is-active { background: rgba(229,169,60,.16); color: var(--gold-soft); }
+.cue-count { font-family: var(--font-en); font-size: 10px; min-width: 18px; padding: 1px 5px; border-radius: 9px; background: rgba(255,255,255,.08); color: var(--text-dim); text-align: center; }
+.subs-tab.is-active .cue-count { background: var(--gold); color: #1a1206; }
+.subs-pane { display: none; flex-direction: column; gap: 8px; min-height: 0; }
+.subs-pane.is-active { display: flex; }
+#subsPanel { gap: 8px; }
+
+.cue-editor { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.cue-editor input[type="text"] {
+  font-family: var(--font-he); font-size: 15px; color: var(--text);
+  background: rgba(0,0,0,.35); border: 1px solid var(--glass-border); border-radius: 8px; padding: 7px 10px;
+  outline: none; transition: border-color .2s, box-shadow .2s;
+}
+.cue-editor input[type="text"]:focus { border-color: rgba(229,169,60,.6); box-shadow: 0 0 0 3px rgba(229,169,60,.12); }
+.cue-editor input.err { animation: shake .4s; border-color: var(--crimson) !important; }
+@keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+#cueText { flex: 1 1 180px; min-width: 140px; }
+.cue-times { display: flex; align-items: center; gap: 4px; }
+.cue-times input[type="text"] { width: 78px; text-align: center; font-family: ui-monospace, Menlo, monospace !important; font-size: 13px !important; padding: 7px 4px !important; color: var(--gold-soft) !important; }
+.cue-arrow { color: var(--text-faint); font-size: 12px; }
+.cue-mark {
+  font-family: var(--font-en); font-size: 10px; font-weight: 600; letter-spacing: .1em; cursor: pointer;
+  padding: 8px 7px; border-radius: 7px; border: 1px solid rgba(224,38,58,.45); background: rgba(224,38,58,.1); color: #ff8592;
+  transition: background .2s;
+}
+.cue-mark:hover { background: rgba(224,38,58,.25); }
+.cue-actions { display: flex; gap: 6px; }
+.btn-xs { padding: 4px 11px; font-size: 12px; font-weight: 500; }
+
+.cue-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; min-height: 34px; max-height: 120px; }
+.cue-item {
+  display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 8px;
+  background: rgba(255,255,255,.03); border: 1px solid transparent; font-size: 14px;
+}
+.cue-item.is-now { border-color: rgba(229,169,60,.45); background: rgba(229,169,60,.08); }
+.cue-item.is-editing { border-color: rgba(224,38,58,.55); }
+.cue-time { flex: none; border: 0; background: none; cursor: pointer; font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: var(--gold); padding: 2px 4px; border-radius: 5px; }
+.cue-time:hover { background: rgba(229,169,60,.12); }
+.cue-line { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cue-icon { flex: none; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 6px; border: 0; background: transparent; color: var(--text-dim); cursor: pointer; }
+.cue-icon svg { width: 15px; height: 15px; }
+.cue-icon:hover { background: var(--glass-2); color: var(--gold); }
+.cue-icon.danger:hover { color: var(--crimson); }
+.cue-empty { font-size: 12px; color: var(--text-faint); padding: 6px 2px; }
+.cue-footer { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cue-status { flex: 1; font-size: 11px; color: #6fdc9a; }
+.cue-status.dirty { color: var(--gold-soft); }
+
+/* Subtitle lane on the timeline */
+.tl-track-subs { height: 22px; overflow: hidden; }
+.tl-cue {
+  position: absolute; top: 0; bottom: 0; padding: 0 6px; border-radius: 5px; cursor: pointer; overflow: hidden;
+  border: 1px solid rgba(255,255,255,.35); background: linear-gradient(180deg, #6b4fa0, #4b367a);
+  color: #fff; font-family: var(--font-he); font-size: 11px; text-align: right; direction: rtl; z-index: 3;
+  transition: filter .2s, border-color .2s;
+}
+.tl-cue span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 20px; }
+.tl-cue:hover { filter: brightness(1.2); }
+.tl-cue.is-now { border-color: var(--gold-soft); box-shadow: 0 0 10px rgba(229,169,60,.5); }
+.tl-cue.is-editing { border-color: var(--crimson); }
+.tl-subs-empty { position: absolute; inset: 0; display: flex; align-items: center; padding: 0 10px; font-size: 10px; color: var(--text-faint); direction: rtl; justify-content: flex-start; }
