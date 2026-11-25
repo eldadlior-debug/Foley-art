@@ -697,3 +697,19 @@ body.on-hero .navbar:hover { opacity: 1; }
 .tl-cue.is-now { border-color: var(--gold-soft); box-shadow: 0 0 10px rgba(229,169,60,.5); }
 .tl-cue.is-editing { border-color: var(--crimson); }
 .tl-subs-empty { position: absolute; inset: 0; display: flex; align-items: center; padding: 0 10px; font-size: 10px; color: var(--text-faint); direction: rtl; justify-content: flex-start; }
+.tl-cue { cursor: grab; touch-action: none; user-select: none; }
+.tl-cue.is-drag { cursor: grabbing; filter: brightness(1.25); z-index: 5; }
+.tl-cue-edge { position: absolute; top: 0; bottom: 0; width: 7px; cursor: ew-resize; background: rgba(255,255,255,.18); }
+.tl-cue-edge.l { left: 0; border-radius: 5px 0 0 5px; }
+.tl-cue-edge.r { right: 0; border-radius: 0 5px 5px 0; }
+.tl-cue:hover .tl-cue-edge { background: rgba(255,255,255,.45); }
+.tl-cue span { padding-inline: 4px 14px; }
+.tl-cue-del {
+  position: absolute; top: 2px; right: 9px; width: 16px; height: 16px; border-radius: 50%;
+  display: grid; place-items: center; font: 600 13px/1 var(--font-en); color: #fff; background: rgba(0,0,0,.45);
+  opacity: 0; cursor: pointer; transition: opacity .2s, background .2s;
+}
+.tl-cue:hover .tl-cue-del { opacity: 1; }
+.tl-cue-del:hover { background: var(--crimson); }
+.tl-track-subs { height: 24px; }
+.btn[hidden] { display: none; }

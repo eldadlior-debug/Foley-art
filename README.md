@@ -28,7 +28,7 @@ Netlify and GitHub Pages both support it.)
 
 ## Timed subtitles (slide 5)
 Open the **כתוביות מתוזמנות** tab: move the playhead, press **IN**, type the line, press **OUT**, then **הוסף שורה** (or Enter).
-Click a line (in the list or the purple block on the timeline) to jump to it and edit it; the bin icon deletes it.
+Each line becomes a purple clip on the timeline: drag it to move it, drag its edges to trim the start/end, and use × (or select it and press Delete) to remove it. Click a clip or a list row to jump to it and edit the text. Typing a line and pressing Enter places it at the playhead (2 s long).
 Edits are kept in your browser until you share them: press **ייצוא JSON** and upload the downloaded
 `subtitles.json` into `assets/` on GitHub (replace the old file). Everyone then sees the same subtitles.
 **טען מהאתר** throws away your local edits and reloads the version from GitHub.

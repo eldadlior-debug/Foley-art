@@ -219,6 +219,7 @@ document.addEventListener("keydown", (e) => {
       if (key === "Home") { handled(); return Studio.seek(0); }
       if (key === "i" || key === "I" || key === "ן") { handled(); return Studio.markIn(); }
       if (key === "o" || key === "O" || key === "ם") { handled(); return Studio.markOut(); }
+      if (key === "Delete" || key === "Backspace") { handled(); return Studio.deleteSelected(); }
       return;
 
     case SLIDE.HERO:
@@ -678,7 +679,7 @@ const Studio = (() => {
     tcDur.textContent = fmtTc(isFinite(video.duration) ? video.duration : 0);
     timeline.setAttribute("aria-valuenow", String(Math.round(t)));
     timeline.setAttribute("aria-valuetext", tc);
-    if (cueLayoutReady) updateSubtitle();
+    if (cueLayoutReady) { updateSubtitle(); followPlayhead(); }
   }
 
   const timeAt = (clientX) => {
@@ -718,6 +719,7 @@ const Studio = (() => {
   let editing = -1;          // index of the cue being edited, -1 = new cue
   let serverJson = "[]";     // what assets/subtitles.json currently holds
   let lastShown = null;
+  let manualTimes = false;   // false = new-line times follow the playhead
 
   const fmtCue = (t) => {
     t = Math.max(0, t || 0);
@@ -732,7 +734,7 @@ const Studio = (() => {
   };
   const escHtml = (v) => String(v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const clean = (list) => (Array.isArray(list) ? list : [])
-    .map((c) => ({ start: Number(c.start), end: Number(c.end), text: String(c.text ?? "").trim() }))
+    .map((c) => { c.start = Number(c.start); c.end = Number(c.end); c.text = String(c.text ?? "").trim(); return c; })
     .filter((c) => isFinite(c.start) && isFinite(c.end) && c.end > c.start && c.text)
     .sort((a, b) => a.start - b.start);
   const round = (t) => Math.round(t * 100) / 100;
@@ -765,11 +767,60 @@ const Studio = (() => {
       b.style.width = `${Math.max(0.4, (clamp(c.end, 0, d) - clamp(c.start, 0, d)) / d * 100)}%`;
       b.title = `${fmtCue(c.start)} → ${fmtCue(c.end)}  ${c.text}`;
       b.innerHTML = `<span>${escHtml(c.text)}</span>`;
-      b.addEventListener("pointerdown", (e) => e.stopPropagation()); // don't start a scrub
-      b.addEventListener("click", () => { seek(c.start + 0.01); startEdit(i); });
+      b.innerHTML += `<i class="tl-cue-edge l"></i><i class="tl-cue-edge r"></i><b class="tl-cue-del" title="מחיקה">×</b>`;
+      b.addEventListener("pointerdown", (e) => onCuePointerDown(e, i, b));
       tlSubs.appendChild(b);
     });
     if (!cues.length) tlSubs.innerHTML = `<span class="tl-subs-empty">— אין כתוביות מתוזמנות —</span>`;
+  }
+
+  /* Drag a clip to move it, drag its edges to trim, × to delete */
+  function onCuePointerDown(e, i, el) {
+    e.stopPropagation(); // don't start a timeline scrub
+    if (e.button !== 0) return;
+    if (e.target.classList.contains("tl-cue-del")) { e.preventDefault(); deleteCue(i); return; }
+    const rect = el.getBoundingClientRect();
+    const mode = e.clientX - rect.left < 8 ? "start" : rect.right - e.clientX < 8 ? "end" : "move";
+    const c = cues[i], orig = { start: c.start, end: c.end };
+    const secPerPx = duration() / tlSubs.clientWidth;
+    const x0 = e.clientX, minLen = 0.2;
+    let moved = false;
+    el.setPointerCapture(e.pointerId);
+    el.classList.add("is-drag");
+    const onMove = (ev) => {
+      const dx = (ev.clientX - x0) * secPerPx;
+      if (!moved && Math.abs(ev.clientX - x0) < 3) return;
+      moved = true;
+      const d = duration(), len = orig.end - orig.start;
+      if (mode === "move") {
+        c.start = clamp(orig.start + dx, 0, Math.max(0, d - len));
+        c.end = c.start + len;
+      } else if (mode === "start") {
+        c.start = clamp(orig.start + dx, 0, orig.end - minLen);
+      } else {
+        c.end = clamp(orig.end + dx, orig.start + minLen, d);
+      }
+      el.style.left = `${(c.start / d) * 100}%`;
+      el.style.width = `${((c.end - c.start) / d) * 100}%`;
+      el.title = `${fmtCue(c.start)} → ${fmtCue(c.end)}  ${c.text}`;
+      seek(mode === "end" ? c.end - 0.01 : c.start + 0.01); // preview the frame being trimmed
+      if (editing === i) { cueStart.value = fmtCue(c.start); cueEnd.value = fmtCue(c.end); }
+    };
+    const onUp = () => {
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerup", onUp);
+      el.removeEventListener("pointercancel", onUp);
+      el.classList.remove("is-drag");
+      if (!moved) { seek(c.start + 0.01); startEdit(i); return; }
+      const editObj = editing >= 0 ? cues[editing] : null;
+      cues = clean(cues);
+      editing = editObj ? cues.indexOf(editObj) : -1;
+      if (editObj) { cueStart.value = fmtCue(editObj.start); cueEnd.value = fmtCue(editObj.end); }
+      refreshCues();
+    };
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerup", onUp);
+    el.addEventListener("pointercancel", onUp);
   }
 
   function renderCueList() {
@@ -808,7 +859,14 @@ const Studio = (() => {
     cueStatus.classList.toggle("dirty", dirty);
   }
 
+  function followPlayhead() {
+    if (editing >= 0 || manualTimes || document.activeElement === cueStart || document.activeElement === cueEnd) return;
+    const t = video.currentTime || 0;
+    cueStart.value = fmtCue(t);
+    cueEnd.value = fmtCue(Math.min(t + 2, duration()));
+  }
   function resetForm(nextStart) {
+    manualTimes = false;
     editing = -1;
     cueText.value = "";
     const s0 = nextStart ?? video.currentTime ?? 0;
@@ -839,7 +897,7 @@ const Studio = (() => {
     const cue = { start, end, text };
     if (editing >= 0) cues[editing] = cue; else cues.push(cue);
     cues = clean(cues);
-    resetForm(end);
+    resetForm();
     refreshCues();
     cueText.focus();
   }
@@ -850,12 +908,14 @@ const Studio = (() => {
   }
   function markIn() {
     const t = video.currentTime || 0;
+    manualTimes = true;
     cueStart.value = fmtCue(t);
     if (!(parseCue(cueEnd.value) > t)) cueEnd.value = fmtCue(Math.min(t + 2, duration()));
     switchTab("timed");
   }
   function markOut() {
     const t = video.currentTime || 0;
+    manualTimes = true;
     cueEnd.value = fmtCue(t);
     switchTab("timed");
   }
@@ -875,6 +935,7 @@ const Studio = (() => {
   [cueText, cueStart, cueEnd].forEach((el) => el.addEventListener("keydown", (e) => {
     if (e.key === "Enter") { e.preventDefault(); saveCue(); }
   }));
+  [cueStart, cueEnd].forEach((el) => el.addEventListener("input", () => (manualTimes = true)));
   [cueStart, cueEnd].forEach((el) => el.addEventListener("blur", () => {
     const t = parseCue(el.value); if (isFinite(t)) el.value = fmtCue(t);
   }));
@@ -954,6 +1015,7 @@ const Studio = (() => {
 
   return {
     toggle, step, seek, toggleFs, isFs, markIn, markOut,
+    deleteSelected: () => { if (editing >= 0) deleteCue(editing); },
     enter: () => { requestAnimationFrame(() => { buildRuler(); render(); }); },
     leave: () => { video.pause(); pauseAudio(); if (isFs()) toggleFs(false); },
   };
