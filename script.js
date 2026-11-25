@@ -254,6 +254,7 @@ const Hero = (() => {
   // focus = where the light + soundwave "listen". It drives itself (autopilot)
   // and follows the real mouse for a few seconds whenever the mouse moves.
   const focus = { x: 0.5, y: 0.55 };
+  const light = { x: 0.5, y: 0.45 };   // the warm light: mouse only, like the original
   const mouse = { x: 0.5, y: 0.5, lastMove: -99, energy: 0 };
   let particles = [], sparks = [];
   let level = 0, hit = 0, nextHit = 1.2;
@@ -263,11 +264,11 @@ const Hero = (() => {
     w = canvas.clientWidth; h = canvas.clientHeight;
     canvas.width = w * dpr; canvas.height = h * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const count = Math.round(clamp((w * h) / 7000, 80, 280));
+    const count = Math.round(clamp((w * h) / 9000, 60, 220));
     particles = Array.from({ length: count }, () => ({
       x: Math.random() * w, y: Math.random() * h,
       r: Math.random() * 1.7 + 0.3,
-      vx: (Math.random() - 0.5) * 0.25, vy: -Math.random() * 0.45 - 0.08,
+      vx: (Math.random() - 0.5) * 0.15, vy: -Math.random() * 0.25 - 0.05,
       a: Math.random() * 0.6 + 0.15, tw: Math.random() * Math.PI * 2,
       depth: Math.random() * 0.8 + 0.2,
     }));
@@ -300,49 +301,32 @@ const Hero = (() => {
     const tx = ax + (mouse.x - ax) * follow, ty = ay + (mouse.y - ay) * follow;
     focus.x += (tx - focus.x) * Math.min(1, dt * 2.2);
     focus.y += (ty - focus.y) * Math.min(1, dt * 2.2);
-    beam.style.setProperty("--mx", `${focus.x * 100}%`);
-    beam.style.setProperty("--my", `${focus.y * 100}%`);
-    beam.style.setProperty("--lv", lv.toFixed(3));
+    light.x += (mouse.x - light.x) * Math.min(1, dt * 3.6);
+    light.y += (mouse.y - light.y) * Math.min(1, dt * 3.6);
     heroSlide.style.setProperty("--lv", lv.toFixed(3));
 
     ctx.clearRect(0, 0, w, h);
 
-    // Slow "camera" drift + parallax
-    const camX = Math.sin(t * 0.13) * 22 + (focus.x - 0.5) * 40;
-    const camY = Math.cos(t * 0.17) * 12 + (focus.y - 0.5) * 26;
-
-    // Projector sweep: a soft rotating light cone from the top
-    ctx.save();
-    const sweep = Math.sin(t * 0.25) * 0.55;
-    ctx.translate(w * 0.5, -h * 0.15);
-    ctx.rotate(sweep);
-    const cone = ctx.createLinearGradient(0, 0, 0, h * 1.3);
-    cone.addColorStop(0, `rgba(255,225,170,${0.10 + lv * 0.05})`);
-    cone.addColorStop(1, "rgba(255,225,170,0)");
-    ctx.fillStyle = cone;
-    ctx.beginPath();
-    ctx.moveTo(-w * 0.03, 0); ctx.lineTo(w * 0.03, 0);
-    ctx.lineTo(w * 0.26, h * 1.3); ctx.lineTo(-w * 0.26, h * 1.3);
-    ctx.closePath(); ctx.fill();
-    ctx.restore();
+    // Parallax follows the mouse only (as before)
+    const camX = (light.x - 0.5) * 40, camY = (light.y - 0.5) * 30;
 
     // Dust in the projector light
     for (const p of particles) {
-      p.x += p.vx * (1 + lv); p.y += p.vy * (1 + lv * 1.5); p.tw += 0.03;
+      p.x += p.vx; p.y += p.vy; p.tw += 0.03;
       if (p.y < -10) { p.y = h + 10; p.x = Math.random() * w; }
       if (p.x < -10) p.x = w + 10; else if (p.x > w + 10) p.x = -10;
       const x = p.x + camX * p.depth, y = p.y + camY * p.depth;
-      const dx = x - focus.x * w, dy = y - focus.y * h;
-      const near = Math.max(0, 1 - Math.hypot(dx, dy) / 360);
-      const alpha = p.a * (0.5 + 0.5 * Math.sin(p.tw)) + near * (0.35 + lv * 0.4);
+      const dx = x - light.x * w, dy = y - light.y * h;
+      const near = Math.max(0, 1 - Math.hypot(dx, dy) / 320);
+      const alpha = p.a * (0.55 + 0.45 * Math.sin(p.tw)) + near * 0.5;
       ctx.beginPath();
       ctx.fillStyle = `rgba(245, 205, 130, ${Math.min(1, alpha)})`;
-      ctx.arc(x, y, p.r * (1 + near * (1 + lv)), 0, Math.PI * 2);
+      ctx.arc(x, y, p.r * (1 + near * 1.2), 0, Math.PI * 2);
       ctx.fill();
     }
 
     // Soundwave: several breathing layers, strongest where the focus is
-    const baseY = h * 0.8 + camY * 0.3;
+    const baseY = h * 0.8;
     const amp = 12 + lv * 46;
     for (let layer = 0; layer < 5; layer++) {
       ctx.beginPath();
@@ -398,6 +382,8 @@ const Hero = (() => {
     const nx = e.clientX / window.innerWidth, ny = e.clientY / window.innerHeight;
     mouse.energy = clamp(mouse.energy + Math.hypot(nx - mouse.x, ny - mouse.y) * 4, 0, 1);
     mouse.x = nx; mouse.y = ny; mouse.lastMove = t;
+    beam.style.setProperty("--mx", `${nx * 100}%`);
+    beam.style.setProperty("--my", `${ny * 100}%`);
   });
   window.addEventListener("resize", () => running && resize());
 
