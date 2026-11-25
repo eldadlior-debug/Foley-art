@@ -23,7 +23,7 @@ Netlify and GitHub Pages both support it.)
 | Slide 5 | Space | Play / pause video + selected music |
 | Slide 5 | ← / → | Back / forward 1 second |
 | Slide 5 | F, double‑click | Fullscreen monitor (with subtitles); Esc exits |
-| Slide 5 | S (or the subtitles button on the monitor) | Hide / show all subtitles, also in fullscreen |
+| Slide 5 | S (or the eye next to the subtitle track) | Show / hide all subtitles, also in fullscreen. They start hidden on every load (`SETTINGS.subtitlesVisibleAtStart`) |
 | Slide 5 | I / O | Set the timed-subtitle start / end to the playhead |
 | Slide 5 | Esc in a text box | Leave the box and return keyboard control |
 

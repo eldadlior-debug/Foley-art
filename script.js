@@ -103,6 +103,9 @@ const SETTINGS = {
      false = music just plays/pauses with the video from wherever it is. */
   musicFollowsVideoTime: true,
 
+  /* false = subtitles start hidden (reveal them with the eye or S). */
+  subtitlesVisibleAtStart: false,
+
   /* Initial music volume (0–1). */
   musicVolume: 0.8,
 };
@@ -512,7 +515,7 @@ const Studio = (() => {
   const tcCur = $("#tcCurrent"), tcDur = $("#tcDuration"), monitorTc = $("#monitorTc");
   const audioLane = $("#tlAudio"), audioLabel = $("#tlAudioLabel"), monitorMusic = $("#monitorMusic");
   const studioRoot = $(".studio");
-  const PAD = 16; // timeline side padding (matches CSS)
+  const PAD = 16, PAD_L = 44; // timeline padding: right / left gutter with the eye (matches CSS)
 
   video.muted = true; // the scene is silent on purpose
   let selected = -1;
@@ -634,7 +637,7 @@ const Studio = (() => {
 
   /* ----- Timeline ----- */
   const duration = () => (isFinite(video.duration) && video.duration > 0 ? video.duration : 60);
-  const trackWidth = () => timeline.clientWidth - PAD * 2;
+  const trackWidth = () => timeline.clientWidth - PAD - PAD_L;
 
   function buildRuler() {
     ruler.innerHTML = "";
@@ -672,9 +675,9 @@ const Studio = (() => {
 
   function render() {
     const d = duration(), t = video.currentTime || 0;
-    const x = PAD + (t / d) * trackWidth();
+    const x = PAD_L + (t / d) * trackWidth();
     playhead.style.left = `${x}px`;
-    progress.style.width = `${x - PAD}px`;
+    progress.style.width = `${x - PAD_L}px`;
     const tc = fmtTc(t);
     tcCur.textContent = tc; monitorTc.textContent = tc;
     tcDur.textContent = fmtTc(isFinite(video.duration) ? video.duration : 0);
@@ -685,7 +688,7 @@ const Studio = (() => {
 
   const timeAt = (clientX) => {
     const r = timeline.getBoundingClientRect();
-    return clamp((clientX - r.left - PAD) / trackWidth(), 0, 1) * duration();
+    return clamp((clientX - r.left - PAD_L) / trackWidth(), 0, 1) * duration();
   };
   timeline.addEventListener("pointerdown", (e) => {
     if (e.button !== 0) return;
@@ -983,28 +986,21 @@ const Studio = (() => {
   refreshCues(false);
   loadCues();
 
-  /* ----- Show / hide all subtitles (live + timed), also in fullscreen ----- */
+  /* ----- Show / hide all subtitles (eye on the subtitle track, or S) -----
+     Starts HIDDEN on every page load, so the subtitles are a surprise
+     when you reveal them during the workshop.                          */
   const subsToggle = $("#subsToggle");
-  const subsFlash = document.createElement("div");
-  subsFlash.className = "subs-flash";
-  screen.appendChild(subsFlash);
-  let flashTimer = 0;
-  function setSubsVisible(on, flash = true) {
+  const timelineWrap = $(".timeline-wrap");
+  function setSubsVisible(on) {
     monitor.classList.toggle("subs-off", !on);
+    timelineWrap.classList.toggle("subs-off", !on);
     subsToggle.setAttribute("aria-pressed", on ? "true" : "false");
     subsToggle.setAttribute("aria-label", on ? "הסתרת כתוביות" : "הצגת כתוביות");
-    $("#subsToggleLabel").textContent = on ? "הסתר כתוביות" : "הצג כתוביות";
-    try { localStorage.setItem("foley-subs-visible", on ? "1" : "0"); } catch (_) {}
-    if (flash) {
-      subsFlash.textContent = on ? "כתוביות: מוצגות" : "כתוביות: מוסתרות";
-      subsFlash.classList.add("show");
-      clearTimeout(flashTimer);
-      flashTimer = setTimeout(() => subsFlash.classList.remove("show"), 900);
-    }
   }
   const toggleSubs = () => setSubsVisible(monitor.classList.contains("subs-off"));
+  subsToggle.addEventListener("pointerdown", (e) => e.stopPropagation()); // not a scrub
   subsToggle.addEventListener("click", (e) => { toggleSubs(); e.currentTarget.blur(); });
-  try { setSubsVisible(localStorage.getItem("foley-subs-visible") !== "0", false); } catch (_) { setSubsVisible(true, false); }
+  setSubsVisible(SETTINGS.subtitlesVisibleAtStart);
 
   /* ----- Fullscreen (monitor + subtitles) ----- */
   let hintTimer = 0;

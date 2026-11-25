@@ -259,10 +259,6 @@
               <div class="monitor-tc en" id="monitorTc">00:00:00</div>
               <div class="monitor-actions">
                 <span class="monitor-music en" id="monitorMusic">NO MUSIC</span>
-                <button class="pc-btn subs-toggle" id="subsToggle" type="button" aria-pressed="true" aria-label="הסתרת כתוביות" title="הסתרה / הצגה של כתוביות (S)">
-                  <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15h4M13 15h4M7 11h10"/><path class="slash" d="M4 4l16 16"/></svg>
-                  <span class="subs-toggle-label" id="subsToggleLabel">הסתר כתוביות</span>
-                </button>
                 <button class="pc-btn" id="fsBtn" type="button" aria-label="מסך מלא" title="מסך מלא (F)">
                   <svg class="i-enter" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
                   <svg class="i-exit" viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>
@@ -310,7 +306,13 @@
             <div class="tl-track">
               <div class="tl-clip" id="tlClip"><span class="en">silent-scene.mp4</span></div>
             </div>
-            <div class="tl-track tl-track-subs" id="tlSubs" title="כתוביות מתוזמנות"></div>
+            <div class="tl-row">
+              <!-- Eye: show / hide subtitles on the video (S). Starts hidden. -->
+              <button class="tl-eye" id="subsToggle" type="button" aria-pressed="false" aria-label="הצגת כתוביות" title="הצגה / הסתרה של הכתוביות (S)">
+                <svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path class="slash" d="M3 3l18 18"/></svg>
+              </button>
+              <div class="tl-track tl-track-subs" id="tlSubs" title="כתוביות מתוזמנות"></div>
+            </div>
             <div class="tl-track tl-track-audio">
               <div class="tl-audio" id="tlAudio"><span class="en" id="tlAudioLabel">— no music —</span></div>
             </div>
