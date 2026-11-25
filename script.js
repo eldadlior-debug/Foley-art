@@ -217,6 +217,7 @@ document.addEventListener("keydown", (e) => {
       if (key === "f" || key === "F" || key === "כ") { handled(); return Studio.toggleFs(); }
       if (key === "Escape" && Studio.isFs()) { handled(); return Studio.toggleFs(false); }
       if (key === "Home") { handled(); return Studio.seek(0); }
+      if (key === "s" || key === "S" || key === "ד") { handled(); return Studio.toggleSubs(); }
       if (key === "i" || key === "I" || key === "ן") { handled(); return Studio.markIn(); }
       if (key === "o" || key === "O" || key === "ם") { handled(); return Studio.markOut(); }
       if (key === "Delete" || key === "Backspace") { handled(); return Studio.deleteSelected(); }
@@ -982,6 +983,28 @@ const Studio = (() => {
   refreshCues(false);
   loadCues();
 
+  /* ----- Show / hide all subtitles (live + timed), also in fullscreen ----- */
+  const subsToggle = $("#subsToggle");
+  const subsFlash = document.createElement("div");
+  subsFlash.className = "subs-flash";
+  screen.appendChild(subsFlash);
+  let flashTimer = 0;
+  function setSubsVisible(on, flash = true) {
+    monitor.classList.toggle("subs-off", !on);
+    subsToggle.setAttribute("aria-pressed", on ? "true" : "false");
+    subsToggle.setAttribute("aria-label", on ? "הסתרת כתוביות" : "הצגת כתוביות");
+    try { localStorage.setItem("foley-subs-visible", on ? "1" : "0"); } catch (_) {}
+    if (flash) {
+      subsFlash.textContent = on ? "כתוביות: מוצגות" : "כתוביות: מוסתרות";
+      subsFlash.classList.add("show");
+      clearTimeout(flashTimer);
+      flashTimer = setTimeout(() => subsFlash.classList.remove("show"), 900);
+    }
+  }
+  const toggleSubs = () => setSubsVisible(monitor.classList.contains("subs-off"));
+  subsToggle.addEventListener("click", (e) => { toggleSubs(); e.currentTarget.blur(); });
+  try { setSubsVisible(localStorage.getItem("foley-subs-visible") !== "0", false); } catch (_) { setSubsVisible(true, false); }
+
   /* ----- Fullscreen (monitor + subtitles) ----- */
   let hintTimer = 0;
   const isFs = () => fsElement() === monitor || pseudoFs;
@@ -1014,7 +1037,7 @@ const Studio = (() => {
   render();
 
   return {
-    toggle, step, seek, toggleFs, isFs, markIn, markOut,
+    toggle, step, seek, toggleFs, isFs, markIn, markOut, toggleSubs,
     deleteSelected: () => { if (editing >= 0) deleteCue(editing); },
     enter: () => { requestAnimationFrame(() => { buildRuler(); render(); }); },
     leave: () => { video.pause(); pauseAudio(); if (isFs()) toggleFs(false); },
