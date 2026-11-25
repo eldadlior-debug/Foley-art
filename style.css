@@ -617,7 +617,7 @@ body.on-hero .navbar:hover { opacity: 1; }
   .monitor { height: auto; }
   .monitor-bezel { height: auto; width: 100%; aspect-ratio: auto; }
   .monitor-screen { aspect-ratio: 16 / 9; flex: none; }
-  .timeline-legend, .nav-dot .lbl, .monitor-music { display: none; }
+  .timeline-legend, .nav-dot .lbl, .monitor-music, .monitor-tag .en { display: none; }
   .studio-bar-title { display: none; }
   .theater { width: 100%; }
 }
@@ -715,9 +715,15 @@ body.on-hero .navbar:hover { opacity: 1; }
 .btn[hidden] { display: none; }
 
 /* Subtitles show / hide toggle */
+.monitor-actions .pc-btn.subs-toggle {
+  width: auto; height: 30px; padding: 0 12px; gap: 7px; display: inline-flex; align-items: center;
+  border-radius: 999px; border: 1px solid rgba(229,169,60,.55); background: rgba(229,169,60,.12);
+  font-family: var(--font-he); font-size: 13px; font-weight: 600; white-space: nowrap;
+}
+.monitor-actions .pc-btn.subs-toggle:hover { background: rgba(229,169,60,.25); }
+.monitor.subs-off .monitor-actions .pc-btn.subs-toggle { border-color: rgba(224,38,58,.6); background: rgba(224,38,58,.12); color: #ff8592; }
 .subs-toggle .slash { display: none; stroke: var(--crimson); stroke-width: 2.2; }
 .monitor.subs-off .subs-toggle .slash { display: inline; }
-.monitor.subs-off .subs-toggle { color: var(--text-faint); }
 .monitor:not(.subs-off) .subs-toggle { color: var(--gold); }
 .monitor.subs-off .subtitle-layer { visibility: hidden; }
 .subs-flash {

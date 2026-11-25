@@ -993,6 +993,7 @@ const Studio = (() => {
     monitor.classList.toggle("subs-off", !on);
     subsToggle.setAttribute("aria-pressed", on ? "true" : "false");
     subsToggle.setAttribute("aria-label", on ? "הסתרת כתוביות" : "הצגת כתוביות");
+    $("#subsToggleLabel").textContent = on ? "הסתר כתוביות" : "הצג כתוביות";
     try { localStorage.setItem("foley-subs-visible", on ? "1" : "0"); } catch (_) {}
     if (flash) {
       subsFlash.textContent = on ? "כתוביות: מוצגות" : "כתוביות: מוסתרות";
