@@ -150,6 +150,25 @@ function buildNav() {
   $("#slideTotal").textContent = pad(slides.length);
   $("#prevBtn").addEventListener("click", () => goTo(current - 1));
   $("#nextBtn").addEventListener("click", () => goTo(current + 1));
+
+  // Touch (iPad): swipe to change slides. RTL like the arrow keys:
+  // swipe right = next slide, swipe left = previous. Swipes that start on
+  // a player bar, the studio timeline, a slider or a text box are left alone.
+  let touch = null;
+  const NO_SWIPE = ".player-controls, .timeline-wrap, #subsPanel, input, textarea, select, .pc-progress";
+  document.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1 || e.target.closest(NO_SWIPE)) { touch = null; return; }
+    touch = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
+  }, { passive: true });
+  document.addEventListener("touchend", (e) => {
+    if (!touch) return;
+    const dx = e.changedTouches[0].clientX - touch.x, dy = e.changedTouches[0].clientY - touch.y;
+    const quick = Date.now() - touch.t < 800;
+    touch = null;
+    if (!quick || Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    const forward = SETTINGS.rtlArrows ? dx > 0 : dx < 0;
+    goTo(current + (forward ? 1 : -1));
+  }, { passive: true });
 }
 
 function goTo(index) {

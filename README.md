@@ -37,3 +37,9 @@ Edits are kept in your browser until you share them: press **ייצוא JSON** a
 Live-typed text (tab **כתוביות חיות**) always shows on top of the timed lines while the box isn't empty.
 
 Media files: see `assets/README.md`. Texts for cards and tracks: CONFIG block at the top of `script.js`.
+
+## Presenting from an iPad
+
+Open the site in Safari, tap Share → **Add to Home Screen**, then launch it from the home-screen icon.
+It opens full screen, without Safari's address bar and tabs. Swipe right for the next slide, left for the previous one
+(or tap the arrows at the bottom).
