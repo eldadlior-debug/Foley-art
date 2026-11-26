@@ -637,10 +637,36 @@ const Book = (() => {  // the opened-card view
   let openIndex = -1, closeTimer = 0, fromCard = null;
 
   // iPhone-style: the panel starts exactly on top of the card and springs to full screen
-  const cardTransform = (el) => {
-    const r = el.getBoundingClientRect(), p = panel.getBoundingClientRect();
-    const sx = r.width / p.width, sy = r.height / p.height;
-    return `translate(${r.left - p.left}px, ${r.top - p.top}px) scale(${sx}, ${sy})`;
+
+
+  /* iPhone app-switcher motion (~1 s):
+     1) the tapped card zooms up to fill the screen with the scene,
+     2) it shrinks back into a rounded card on the right while the Foley
+        card slides in from the left, ending side by side. */
+  const paneScene = $(".pane-scene", overlay), paneAnswer = $(".pane-answer", overlay);
+  const extras = $$(".app-head, .app-both", overlay);
+  const EASE = "cubic-bezier(.22, .9, .25, 1)";
+  const SPRING = (() => {
+    const pts = [];
+    for (let i = 0; i <= 40; i++) {
+      const t = i / 40 * 0.82;                       // seconds
+      const w = 2 * Math.PI / 0.62, z = 0.72;        // response .62s, damping .72
+      const wd = w * Math.sqrt(1 - z * z);
+      const v = 1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + (z * w / wd) * Math.sin(wd * t));
+      pts.push(+v.toFixed(4));
+    }
+    pts[pts.length - 1] = 1;
+    const lin = `linear(${pts.join(", ")})`;
+    return CSS.supports("animation-timing-function", lin) ? lin : "cubic-bezier(.3, 1.25, .45, 1)";
+  })();
+  let anims = [];
+  const stopAnims = () => { anims.forEach((an) => an.cancel()); anims = []; };
+  const rectOf = (el) => el.getBoundingClientRect();
+  const toRect = (from, to) =>
+    `translate(${to.left - from.left}px, ${to.top - from.top}px) scale(${to.width / from.width}, ${to.height / from.height})`;
+  const fullScreen = (r) => {
+    const s = Math.min(innerWidth / r.width, innerHeight / r.height);
+    return `translate(${(innerWidth - r.width * s) / 2 - r.left}px, ${(innerHeight - r.height * s) / 2 - r.top}px) scale(${s})`;
   };
 
   function open(i, fromEl) {
@@ -648,6 +674,7 @@ const Book = (() => {  // the opened-card view
     allVideos.forEach((v) => v.pause());
     guessPlayer.pause();
     clearTimeout(closeTimer);
+    stopAnims();
     openIndex = i;
     fromCard = fromEl || null;
     sceneVideo.src = card.video + "#t=0.1";
@@ -656,24 +683,44 @@ const Book = (() => {  // the opened-card view
     title2El.textContent = card.title || "";
     numEl.textContent = `SFX ${pad(i + 1)}`;
     overlay.hidden = false;
-    overlay.classList.remove("is-open", "is-closing");
-    panel.style.transition = "none";
-    panel.style.transform = fromCard ? cardTransform(fromCard) : "scale(.6)";
-    void panel.offsetWidth;
-    panel.style.transition = "";
-    requestAnimationFrame(() => {
-      overlay.classList.add("is-open");
-      panel.style.transform = "none";
-    });
+    overlay.classList.add("is-open");
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const S = rectOf(paneScene), A = rectOf(paneAnswer);
+    // One continuous iOS-style spring: the card flies straight from its spot
+    // in the grid to its place on the right, while the Foley card glides in
+    // from the left at the same time. Slight overshoot, then settles.
+    const start = fromCard ? toRect(S, rectOf(fromCard)) : "scale(.5)";
+    const D = 820;
+    anims.push(paneScene.animate([
+      { transform: start, borderRadius: "16px" },
+      { transform: "none", borderRadius: "18px" },
+    ], { duration: D, easing: SPRING }));
+    anims.push(paneAnswer.animate([
+      { transform: `translateX(${-(A.right + 40)}px) scale(.9)`, opacity: .4 },
+      { transform: "none", opacity: 1 },
+    ], { duration: D, delay: 60, easing: SPRING, fill: "backwards" }));
+    extras.forEach((el) => anims.push(el.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }],
+      { duration: 380, delay: 380, easing: "ease-out", fill: "backwards" })));
+    anims.push(overlay.animate([
+      { backgroundColor: "rgba(10,10,12,0)", backdropFilter: "blur(0px)" },
+      { backgroundColor: "rgba(10,10,12,1)", backdropFilter: "blur(14px)" },
+    ], { duration: 420, easing: "ease-out" }));
   }
   function close() {
     if (openIndex < 0) return;
     openIndex = -1;
     sceneVideo.pause(); answerVideo.pause();
-    overlay.classList.add("is-closing");
-    overlay.classList.remove("is-open");
-    panel.style.transform = fromCard ? cardTransform(fromCard) : "scale(.6)";
-    closeTimer = setTimeout(() => { overlay.hidden = true; overlay.classList.remove("is-closing"); }, 520);
+    stopAnims();
+    const S = rectOf(paneScene), A = rectOf(paneAnswer);
+    const D = 520;
+    if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      anims.push(paneScene.animate([{ transform: "none" }, { transform: fromCard ? toRect(S, rectOf(fromCard)) : "scale(.5)", borderRadius: "16px" }], { duration: D, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" }));
+      anims.push(paneAnswer.animate([{ transform: "none", opacity: 1 }, { transform: `translateX(${-(A.right + 60)}px)`, opacity: .6 }], { duration: D, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" }));
+      extras.forEach((el) => anims.push(el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: "forwards" })));
+      anims.push(overlay.animate([{ backgroundColor: "rgba(10,10,12,1)" }, { backgroundColor: "rgba(10,10,12,0)" }], { duration: D, fill: "forwards" }));
+    }
+    closeTimer = setTimeout(() => { stopAnims(); overlay.hidden = true; overlay.classList.remove("is-open"); }, D);
   }
   function playBoth() {
     allVideos.forEach((v) => v.pause());
