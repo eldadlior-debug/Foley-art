@@ -384,6 +384,8 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round
 .flip-card:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; border-radius: 16px; }
 .flip-inner { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .9s cubic-bezier(.3, 1.4, .4, 1); }
 .flip-card.is-flipped .flip-inner { transform: rotateY(180deg); }
+/* Only the face you see takes clicks (so the ▶ on the back works after flipping) */
+.flip-card:not(.is-flipped) .flip-back, .flip-card.is-flipped .flip-front { pointer-events: none; }
 .flip-card:hover:not(.is-flipped) .flip-inner { transform: rotateY(-8deg) translateY(-4px); }
 .flip-face {
   position: absolute; inset: 0; border-radius: 16px; overflow: hidden;

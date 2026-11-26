@@ -37,36 +37,42 @@ const NO_MUSIC_LABEL = "ללא מוזיקה (שקט מוחלט)";
                 click anywhere else on the card to flip it)
    - answer:    the real object/prop (back of the card, big text)
    - sound:     small line under the answer — can be ""
-   - backImage: photo of the prop (back of the card); a missing file
-                shows a neat placeholder icon
+   - answerVideo: the answer clip on the back (how the sound is really made;
+                press ▶ to play it with sound). Leave "" to show backImage instead
+   - backImage: photo of the prop (back of the card, used when there is no
+                answerVideo); a missing file shows a neat placeholder icon
    ===================================================================== */
 const GUESS_CARDS = [
   {
     title: "בשר יוצא מהקופסא",
     video: "assets/cards/clip1.mp4",
-    answer: "(כאן תופיע התשובה)",
+    answer: "",
     sound: "",
+    answerVideo: "assets/cards/answer1.mp4",
     backImage: "assets/cards/clip1-prop.jpg",
   },
   {
     title: "סידור הקציצות",
     video: "assets/cards/clip2.mp4",
-    answer: "(כאן תופיע התשובה)",
+    answer: "",
     sound: "",
+    answerVideo: "assets/cards/answer2.mp4",
     backImage: "assets/cards/clip2-prop.jpg",
   },
   {
     title: "משחקים עם המרית",
     video: "assets/cards/clip3.mp4",
-    answer: "(כאן תופיע התשובה)",
+    answer: "",
     sound: "",
+    answerVideo: "assets/cards/answer3.mp4",
     backImage: "assets/cards/clip3-prop.jpg",
   },
   {
     title: "סידור הלחמניות",
     video: "assets/cards/clip4.mp4",
-    answer: "(כאן תופיע התשובה)",
+    answer: "",
     sound: "",
+    answerVideo: "assets/cards/answer4.mp4",
     backImage: "assets/cards/clip4-prop.jpg",
   },
 ];
@@ -567,33 +573,43 @@ onLeaveHandlers[SLIDE.GUESS] = guessPlayer.pause;
           <div class="flip-caption">ממה עשוי הצליל? <span class="flip-hint">לחצו על הכרטיס כדי לגלות</span></div>
         </div>
         <div class="flip-face flip-back">
-          <div class="flip-img"><img src="${esc(card.backImage)}" alt="${esc(card.answer)}" loading="lazy" /><div class="img-fallback">${imgIcon}</div></div>
+          ${card.answerVideo ? `
+          <div class="flip-img flip-video">
+            <video src="${esc(card.answerVideo)}#t=0.1" preload="auto" playsinline></video>
+            <button type="button" class="clip-play" aria-label="נגן את התשובה">${playIcon}${pauseIcon}</button>
+            <span class="flip-num en">ANSWER ${pad(i + 1)}</span>
+          </div>` : `
+          <div class="flip-img"><img src="${esc(card.backImage)}" alt="${esc(card.answer)}" loading="lazy" /><div class="img-fallback">${imgIcon}</div></div>`}
           <div class="flip-caption">
             <div class="flip-sound">${esc(card.title || "")}</div>
-            <div class="flip-answer">${esc(card.answer)}</div>
+            ${card.answer ? `<div class="flip-answer">${esc(card.answer)}</div>` : `<div class="flip-answer">כך זה נשמע באמת</div>`}
             ${card.sound ? `<div class="flip-sound">${esc(card.sound)}</div>` : ""}
           </div>
         </div>
       </div>`;
     $$("img", el).forEach((img) => img.addEventListener("error", () => img.parentElement.classList.add("no-img")));
 
-    const video = $("video", el), btn = $(".clip-play", el), box = $(".flip-video", el);
-    allVideos.push(video);
-    const togglePlay = () => {
-      if (video.paused || video.ended) {
-        allVideos.forEach((v) => v !== video && v.pause());
-        guessPlayer.pause();
-        if (video.ended) video.currentTime = 0;
-        video.play().catch(() => {});
-      } else video.pause();
-    };
-    video.addEventListener("play", () => box.classList.add("is-playing"));
-    video.addEventListener("pause", () => box.classList.remove("is-playing"));
-    video.addEventListener("ended", () => box.classList.remove("is-playing"));
-    btn.addEventListener("click", (e) => { e.stopPropagation(); togglePlay(); });
-    video.addEventListener("click", (e) => { e.stopPropagation(); togglePlay(); });
+    // Each clip box (front question, back answer) gets its own ▶ button
+    const cardVideos = $$(".flip-video", el).map((box) => {
+      const video = $("video", box), btn = $(".clip-play", box);
+      allVideos.push(video);
+      const togglePlay = () => {
+        if (video.paused || video.ended) {
+          allVideos.forEach((v) => v !== video && v.pause());
+          guessPlayer.pause();
+          if (video.ended) video.currentTime = 0;
+          video.play().catch(() => {});
+        } else video.pause();
+      };
+      video.addEventListener("play", () => box.classList.add("is-playing"));
+      video.addEventListener("pause", () => box.classList.remove("is-playing"));
+      video.addEventListener("ended", () => box.classList.remove("is-playing"));
+      btn.addEventListener("click", (e) => { e.stopPropagation(); togglePlay(); });
+      video.addEventListener("click", (e) => { e.stopPropagation(); togglePlay(); });
+      return video;
+    });
 
-    const flip = () => { video.pause(); el.classList.toggle("is-flipped"); };
+    const flip = () => { cardVideos.forEach((v) => v.pause()); el.classList.toggle("is-flipped"); };
     el.addEventListener("click", flip);
     el.addEventListener("keydown", (e) => {
       if (e.target !== el) return;

@@ -8,7 +8,7 @@ Drop your files into this folder using **exactly** these names
 | 3 · סרטון מבוא | `assets/intro-foley.mp4` | Your intro video (H.264 MP4 plays everywhere). Optional poster frame: `assets/intro-poster.jpg` |
 | 5 · נחשו ממה עשוי הצליל | `assets/guess-example.mp4` | The short clip shown beside the cards |
 | 5 · cards | `assets/cards/clip1.mp4` … `clip4.mp4` | Short clip on the front of each card (plays with sound) |
-| 5 · cards | `assets/cards/clip1-prop.jpg` … `clip4-prop.jpg` | Back of each card: photo of the real prop |
+| 5 · cards | `assets/cards/answer1.mp4` … `answer4.mp4` | Back of each card: the answer clip (how the sound is really made, plays with sound) |
 | 4 · סצנה במסך מלא | `assets/scene-video.mp4` | The 20-second scene before the guess game |
 | 6 · פולי בפעולה | `assets/foley-performance.mp4` | Full-screen video of a Foley artist at work |
 | 7 · אולפן חי | `assets/silent-scene.mp4` | Played muted on purpose |
