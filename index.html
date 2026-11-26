@@ -286,12 +286,48 @@
                 </button>
               </div>
             </div>
-            <p class="guess-tip">צפו בקטע, הקשיבו היטב — ולחצו על כרטיס כדי לגלות מה באמת יצר את הצליל.</p>
-            <button class="btn btn-ghost btn-sm" id="flipAllBtn" type="button">הפוך את כל הכרטיסים</button>
+            <p class="guess-tip">צפו בקטע, הקשיבו היטב — ולחצו על כרטיס כדי לפתוח אותו ולגלות מה באמת יצר את הצליל.</p>
           </aside>
 
           <!-- Cards are generated from GUESS_CARDS in script.js -->
           <div class="card-grid" id="cardGrid"></div>
+        </div>
+      </div>
+
+      <!-- The "book": a card opens into two pages — the scene and how the sound was really made -->
+      <div class="book-overlay" id="bookOverlay" hidden>
+        <div class="book" role="dialog" aria-modal="true" aria-label="התשובה">
+          <button class="book-close" type="button" aria-label="סגור">
+            <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+          <div class="book-spread">
+            <div class="book-page page-scene">
+              <div class="page-label"><span class="en">THE SCENE</span> · הסצנה</div>
+              <div class="page-video">
+                <video playsinline preload="auto"></video>
+                <button type="button" class="clip-play" aria-label="נגן את הסצנה"></button>
+              </div>
+              <div class="page-caption" data-el="title"></div>
+            </div>
+            <div class="book-page page-answer">
+              <div class="page-face page-front">
+                <div class="page-label"><span class="en">THE FOLEY</span> · כך זה נשמע באמת</div>
+                <div class="page-video">
+                  <video playsinline preload="auto"></video>
+                  <button type="button" class="clip-play" aria-label="נגן את התשובה"></button>
+                </div>
+                <div class="page-caption gold" data-el="answer">כך זה נשמע באמת</div>
+              </div>
+              <div class="page-face page-cover" aria-hidden="true">
+                <span class="en">FOLEY</span>
+                <b>?</b>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-gold book-both" type="button">
+            <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+            <span>נגן את שניהם ביחד</span>
+          </button>
         </div>
       </div>
     </section>

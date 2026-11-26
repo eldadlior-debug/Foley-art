@@ -163,7 +163,7 @@ function buildNav() {
   // swipe right = next slide, swipe left = previous. Swipes that start on
   // a player bar, the studio timeline, a slider or a text box are left alone.
   let touch = null;
-  const NO_SWIPE = ".player-controls, .timeline-wrap, #subsPanel, input, textarea, select, .pc-progress";
+  const NO_SWIPE = ".player-controls, .timeline-wrap, #subsPanel, input, textarea, select, .pc-progress, .book-overlay";
   document.addEventListener("touchstart", (e) => {
     if (e.touches.length !== 1 || e.target.closest(NO_SWIPE)) { touch = null; return; }
     touch = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
@@ -266,6 +266,10 @@ document.addEventListener("keydown", (e) => {
       break;
 
     case SLIDE.GUESS:
+      if (Book.isOpen()) {
+        if (key === " ") { handled(); return Book.playBoth(); }
+        if (key === "Escape") { handled(); return Book.close(); }
+      }
       if (key === " ") { handled(); return guessPlayer.toggle(); }
       break;
   }
@@ -547,18 +551,45 @@ onLeaveHandlers[SLIDE.INTRO] = introPlayer.pause;
 onLeaveHandlers[SLIDE.GUESS] = guessPlayer.pause;
 
 /* =====================================================================
-   SLIDE 4 — Flip cards
+   SLIDE 5 — Guess cards that open like a book
+   Front: the cartoon clip (▶ plays it with sound). Tap the card to open it:
+   the right page shows the scene, the left page swings open with the real
+   Foley performance. "Play both" runs them in sync (the scene muted, the
+   Foley performance with sound).
    ===================================================================== */
-(() => {
+const Book = (() => {
   const grid = $("#cardGrid");
-  const imgIcon = `<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>`;
+  const overlay = $("#bookOverlay");
   const esc = (s = "") => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-
-  grid.classList.toggle("cards-4", GUESS_CARDS.length === 4);
   const playIcon = `<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>`;
   const pauseIcon = `<svg viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>`;
   const allVideos = [];
 
+  grid.classList.toggle("cards-4", GUESS_CARDS.length === 4);
+
+  // One ▶ button per clip box; only one clip plays at a time (unless "both")
+  const wireClip = (box) => {
+    const video = $("video", box), btn = $(".clip-play", box);
+    btn.innerHTML = playIcon + pauseIcon;
+    allVideos.push(video);
+    const toggle = () => {
+      if (video.paused || video.ended) {
+        allVideos.forEach((v) => v !== video && v.pause());
+        guessPlayer.pause();
+        video.muted = false;
+        if (video.ended) video.currentTime = 0;
+        video.play().catch(() => {});
+      } else video.pause();
+    };
+    video.addEventListener("play", () => box.classList.add("is-playing"));
+    video.addEventListener("pause", () => box.classList.remove("is-playing"));
+    video.addEventListener("ended", () => box.classList.remove("is-playing"));
+    btn.addEventListener("click", (e) => { e.stopPropagation(); toggle(); });
+    video.addEventListener("click", (e) => { e.stopPropagation(); toggle(); });
+    return video;
+  };
+
+  /* ----- The cards (front only) ----- */
   GUESS_CARDS.forEach((card, i) => {
     const el = document.createElement("div");
     el.className = "flip-card";
@@ -571,65 +602,72 @@ onLeaveHandlers[SLIDE.GUESS] = guessPlayer.pause;
           <div class="flip-title">${esc(card.title || "")}</div>
           <div class="flip-img flip-video">
             <video src="${esc(card.video)}#t=0.1" preload="auto" playsinline></video>
-            <button type="button" class="clip-play" aria-label="נגן את הקטע">${playIcon}${pauseIcon}</button>
+            <button type="button" class="clip-play" aria-label="נגן את הקטע"></button>
             <span class="flip-num en">SFX ${pad(i + 1)}</span>
           </div>
-          <div class="flip-caption">ממה עשוי הצליל? <span class="flip-hint">לחצו על הכרטיס כדי לגלות</span></div>
-        </div>
-        <div class="flip-face flip-back">
-          ${card.answerVideo ? `
-          <div class="flip-img flip-video">
-            <video src="${esc(card.answerVideo)}#t=0.1" preload="auto" playsinline></video>
-            <button type="button" class="clip-play" aria-label="נגן את התשובה">${playIcon}${pauseIcon}</button>
-            <span class="flip-num en">ANSWER ${pad(i + 1)}</span>
-          </div>` : `
-          <div class="flip-img"><img src="${esc(card.backImage)}" alt="${esc(card.answer)}" loading="lazy" /><div class="img-fallback">${imgIcon}</div></div>`}
-          <div class="flip-caption">
-            <div class="flip-sound">${esc(card.title || "")}</div>
-            ${card.answer ? `<div class="flip-answer">${esc(card.answer)}</div>` : `<div class="flip-answer">כך זה נשמע באמת</div>`}
-            ${card.sound ? `<div class="flip-sound">${esc(card.sound)}</div>` : ""}
-          </div>
+          <div class="flip-caption">ממה עשוי הצליל? <span class="flip-hint">לחצו על הכרטיס כדי לפתוח</span></div>
         </div>
       </div>`;
-    $$("img", el).forEach((img) => img.addEventListener("error", () => img.parentElement.classList.add("no-img")));
-
-    // Each clip box (front question, back answer) gets its own ▶ button
-    const cardVideos = $$(".flip-video", el).map((box) => {
-      const video = $("video", box), btn = $(".clip-play", box);
-      allVideos.push(video);
-      const togglePlay = () => {
-        if (video.paused || video.ended) {
-          allVideos.forEach((v) => v !== video && v.pause());
-          guessPlayer.pause();
-          if (video.ended) video.currentTime = 0;
-          video.play().catch(() => {});
-        } else video.pause();
-      };
-      video.addEventListener("play", () => box.classList.add("is-playing"));
-      video.addEventListener("pause", () => box.classList.remove("is-playing"));
-      video.addEventListener("ended", () => box.classList.remove("is-playing"));
-      btn.addEventListener("click", (e) => { e.stopPropagation(); togglePlay(); });
-      video.addEventListener("click", (e) => { e.stopPropagation(); togglePlay(); });
-      return video;
-    });
-
-    const flip = () => { cardVideos.forEach((v) => v.pause()); el.classList.toggle("is-flipped"); };
-    el.addEventListener("click", flip);
+    wireClip($(".flip-video", el));
+    el.addEventListener("click", () => open(i, el));
     el.addEventListener("keydown", (e) => {
       if (e.target !== el) return;
-      if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); flip(); }
+      if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); open(i, el); }
     });
     grid.appendChild(el);
   });
-  onLeaveHandlers[SLIDE.GUESS] = () => { guessPlayer.pause(); allVideos.forEach((v) => v.pause()); };
 
-  const flipAll = $("#flipAllBtn");
-  flipAll.addEventListener("click", () => {
-    const cards = $$(".flip-card", grid);
-    const anyHidden = cards.some((c) => !c.classList.contains("is-flipped"));
-    cards.forEach((c, i) => setTimeout(() => c.classList.toggle("is-flipped", anyHidden), i * 90));
-    flipAll.textContent = anyHidden ? "החזר את כל הכרטיסים" : "הפוך את כל הכרטיסים";
-  });
+  /* ----- The book ----- */
+  const sceneBox = $(".page-scene .page-video", overlay);
+  const answerBox = $(".page-answer .page-video", overlay);
+  const sceneVideo = wireClip(sceneBox);
+  const answerVideo = wireClip(answerBox);
+  const titleEl = $('[data-el="title"]', overlay), answerEl = $('[data-el="answer"]', overlay);
+  let openIndex = -1, closeTimer = 0;
+
+  function open(i, fromEl) {
+    const card = GUESS_CARDS[i];
+    allVideos.forEach((v) => v.pause());
+    guessPlayer.pause();
+    clearTimeout(closeTimer);
+    openIndex = i;
+    sceneVideo.src = card.video + "#t=0.1";
+    answerVideo.src = (card.answerVideo || card.video) + "#t=0.1";
+    titleEl.textContent = card.title || "";
+    answerEl.textContent = card.answer || "כך זה נשמע באמת";
+    // Open from the tapped card's position
+    if (fromEl) {
+      const r = fromEl.getBoundingClientRect(), o = overlay.parentElement.getBoundingClientRect();
+      overlay.style.setProperty("--ox", `${r.left + r.width / 2 - o.left}px`);
+      overlay.style.setProperty("--oy", `${r.top + r.height / 2 - o.top}px`);
+    }
+    overlay.hidden = false;
+    overlay.classList.remove("is-open");
+    void overlay.offsetWidth; // restart the animation
+    overlay.classList.add("is-open");
+  }
+  function close() {
+    if (openIndex < 0) return;
+    openIndex = -1;
+    sceneVideo.pause(); answerVideo.pause();
+    overlay.classList.remove("is-open");
+    closeTimer = setTimeout(() => { overlay.hidden = true; }, 650);
+  }
+  function playBoth() {
+    allVideos.forEach((v) => v.pause());
+    guessPlayer.pause();
+    sceneVideo.currentTime = 0; answerVideo.currentTime = 0;
+    sceneVideo.muted = true;      // the scene stays silent…
+    answerVideo.muted = false;    // …you hear the real Foley performance
+    sceneVideo.play().catch(() => {});
+    answerVideo.play().catch(() => {});
+  }
+  $(".book-both", overlay).addEventListener("click", (e) => { e.stopPropagation(); playBoth(); });
+  $(".book-close", overlay).addEventListener("click", (e) => { e.stopPropagation(); close(); });
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+
+  onLeaveHandlers[SLIDE.GUESS] = () => { guessPlayer.pause(); allVideos.forEach((v) => v.pause()); close(); };
+  return { isOpen: () => openIndex >= 0, close, playBoth };
 })();
 
 /* =====================================================================
