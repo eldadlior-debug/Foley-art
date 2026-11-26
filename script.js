@@ -75,6 +75,14 @@ const GUESS_CARDS = [
     answerVideo: "assets/cards/answer4.mp4",
     backImage: "assets/cards/clip4-prop.jpg",
   },
+  {
+    title: "מגש ההמבורגרים",
+    video: "assets/cards/clip5.mp4",
+    answer: "",
+    sound: "",
+    answerVideo: "assets/cards/answer5.mp4",
+    backImage: "",
+  },
 ];
 
 /* =====================================================================
@@ -163,7 +171,7 @@ function buildNav() {
   // swipe right = next slide, swipe left = previous. Swipes that start on
   // a player bar, the studio timeline, a slider or a text box are left alone.
   let touch = null;
-  const NO_SWIPE = ".player-controls, .timeline-wrap, #subsPanel, input, textarea, select, .pc-progress, .book-overlay";
+  const NO_SWIPE = ".player-controls, .timeline-wrap, #subsPanel, input, textarea, select, .pc-progress, .app-view";
   document.addEventListener("touchstart", (e) => {
     if (e.touches.length !== 1 || e.target.closest(NO_SWIPE)) { touch = null; return; }
     touch = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
@@ -551,21 +559,24 @@ onLeaveHandlers[SLIDE.INTRO] = introPlayer.pause;
 onLeaveHandlers[SLIDE.GUESS] = guessPlayer.pause;
 
 /* =====================================================================
-   SLIDE 5 — Guess cards that open like a book
-   Front: the cartoon clip (▶ plays it with sound). Tap the card to open it:
-   the right page shows the scene, the left page swings open with the real
-   Foley performance. "Play both" runs them in sync (the scene muted, the
+   SLIDE 5 — Guess cards that open like an iPhone app
+   Front: the cartoon clip (▶ plays it with sound). Tap the card: it grows
+   to full screen and shows the scene (right) next to the real Foley
+   performance (left). Close with ✕, Esc, or a swipe down. "Play both" runs them in sync (the scene muted, the
    Foley performance with sound).
    ===================================================================== */
-const Book = (() => {
+const Book = (() => {  // the opened-card view
   const grid = $("#cardGrid");
-  const overlay = $("#bookOverlay");
+  const overlay = $("#appView");
+  const panel = $(".app-panel", overlay);
+  document.body.appendChild(overlay); // above the nav bars, outside the slide's stacking context
   const esc = (s = "") => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const playIcon = `<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>`;
   const pauseIcon = `<svg viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>`;
   const allVideos = [];
 
   grid.classList.toggle("cards-4", GUESS_CARDS.length === 4);
+  grid.classList.toggle("cards-5", GUESS_CARDS.length === 5);
 
   // One ▶ button per clip box; only one clip plays at a time (unless "both")
   const wireClip = (box) => {
@@ -618,12 +629,19 @@ const Book = (() => {
   });
 
   /* ----- The book ----- */
-  const sceneBox = $(".page-scene .page-video", overlay);
-  const answerBox = $(".page-answer .page-video", overlay);
+  const sceneBox = $(".pane-scene .page-video", overlay);
+  const answerBox = $(".pane-answer .page-video", overlay);
   const sceneVideo = wireClip(sceneBox);
   const answerVideo = wireClip(answerBox);
-  const titleEl = $('[data-el="title"]', overlay), answerEl = $('[data-el="answer"]', overlay);
-  let openIndex = -1, closeTimer = 0;
+  const titleEl = $('[data-el="title"]', overlay);
+  let openIndex = -1, closeTimer = 0, fromCard = null;
+
+  // iPhone-style: the panel starts exactly on top of the card and springs to full screen
+  const cardTransform = (el) => {
+    const r = el.getBoundingClientRect(), p = panel.getBoundingClientRect();
+    const sx = r.width / p.width, sy = r.height / p.height;
+    return `translate(${r.left - p.left}px, ${r.top - p.top}px) scale(${sx}, ${sy})`;
+  };
 
   function open(i, fromEl) {
     const card = GUESS_CARDS[i];
@@ -631,27 +649,29 @@ const Book = (() => {
     guessPlayer.pause();
     clearTimeout(closeTimer);
     openIndex = i;
+    fromCard = fromEl || null;
     sceneVideo.src = card.video + "#t=0.1";
     answerVideo.src = (card.answerVideo || card.video) + "#t=0.1";
     titleEl.textContent = card.title || "";
-    answerEl.textContent = card.answer || "כך זה נשמע באמת";
-    // Open from the tapped card's position
-    if (fromEl) {
-      const r = fromEl.getBoundingClientRect(), o = overlay.parentElement.getBoundingClientRect();
-      overlay.style.setProperty("--ox", `${r.left + r.width / 2 - o.left}px`);
-      overlay.style.setProperty("--oy", `${r.top + r.height / 2 - o.top}px`);
-    }
     overlay.hidden = false;
-    overlay.classList.remove("is-open");
-    void overlay.offsetWidth; // restart the animation
-    overlay.classList.add("is-open");
+    overlay.classList.remove("is-open", "is-closing");
+    panel.style.transition = "none";
+    panel.style.transform = fromCard ? cardTransform(fromCard) : "scale(.6)";
+    void panel.offsetWidth;
+    panel.style.transition = "";
+    requestAnimationFrame(() => {
+      overlay.classList.add("is-open");
+      panel.style.transform = "none";
+    });
   }
   function close() {
     if (openIndex < 0) return;
     openIndex = -1;
     sceneVideo.pause(); answerVideo.pause();
+    overlay.classList.add("is-closing");
     overlay.classList.remove("is-open");
-    closeTimer = setTimeout(() => { overlay.hidden = true; }, 650);
+    panel.style.transform = fromCard ? cardTransform(fromCard) : "scale(.6)";
+    closeTimer = setTimeout(() => { overlay.hidden = true; overlay.classList.remove("is-closing"); }, 520);
   }
   function playBoth() {
     allVideos.forEach((v) => v.pause());
@@ -662,9 +682,13 @@ const Book = (() => {
     sceneVideo.play().catch(() => {});
     answerVideo.play().catch(() => {});
   }
-  $(".book-both", overlay).addEventListener("click", (e) => { e.stopPropagation(); playBoth(); });
-  $(".book-close", overlay).addEventListener("click", (e) => { e.stopPropagation(); close(); });
+  $(".app-both", overlay).addEventListener("click", (e) => { e.stopPropagation(); playBoth(); });
+  $(".app-close", overlay).addEventListener("click", (e) => { e.stopPropagation(); close(); });
   overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+  // Swipe down on the opened card closes it (like going home on an iPhone)
+  let sy = null;
+  panel.addEventListener("touchstart", (e) => { sy = e.target.closest(".page-video") ? null : e.touches[0].clientY; }, { passive: true });
+  panel.addEventListener("touchend", (e) => { if (sy !== null && e.changedTouches[0].clientY - sy > 90) close(); sy = null; }, { passive: true });
 
   onLeaveHandlers[SLIDE.GUESS] = () => { guessPlayer.pause(); allVideos.forEach((v) => v.pause()); close(); };
   return { isOpen: () => openIndex >= 0, close, playBoth };
