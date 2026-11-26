@@ -812,3 +812,27 @@ body.on-hero .navbar:hover { opacity: 1; }
    The warm light still follows the mouse only, as in the original.
    ===================================================================== */
 .slide-hero .hero-line { width: calc(90px + var(--lv, 0) * 90px); }
+
+/* =====================================================================
+   Big side arrows — easy to tap on an iPad, quiet for the audience
+   (RTL: the left arrow is "next", the right arrow is "previous")
+   ===================================================================== */
+.side-nav {
+  position: fixed; top: 50%; z-index: 70; transform: translateY(-50%);
+  width: 64px; height: 64px; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer;
+  color: var(--gold); background: rgba(10,10,12,.35);
+  border: 1px solid rgba(229,169,60,.28);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  opacity: .45; transition: opacity .3s, background .3s, transform .2s;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.side-nav svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.side-nav:hover, .side-nav:focus-visible { opacity: 1; background: rgba(229,169,60,.16); }
+.side-nav:active { opacity: 1; transform: translateY(-50%) scale(.92); background: rgba(229,169,60,.28); }
+.side-nav[hidden] { display: none; }
+.side-next { left: 14px; }
+.side-prev { right: 14px; }
+/* Hidden while the studio monitor is in its own full-screen mode */
+body:has(.monitor.is-fs) .side-nav { display: none; }
+@media (max-width: 700px) { .side-nav { width: 48px; height: 48px; } .side-nav svg { width: 22px; height: 22px; } }

@@ -156,6 +156,8 @@ function buildNav() {
   $("#slideTotal").textContent = pad(slides.length);
   $("#prevBtn").addEventListener("click", () => goTo(current - 1));
   $("#nextBtn").addEventListener("click", () => goTo(current + 1));
+  $("#sidePrev").addEventListener("click", (e) => { e.currentTarget.blur(); goTo(current - 1); });
+  $("#sideNext").addEventListener("click", (e) => { e.currentTarget.blur(); goTo(current + 1); });
 
   // Touch (iPad): swipe to change slides. RTL like the arrow keys:
   // swipe right = next slide, swipe left = previous. Swipes that start on
@@ -199,6 +201,8 @@ function updateNav() {
   $("#navProgress").style.width = `${(current / (slides.length - 1)) * 100}%`;
   $("#prevBtn").disabled = current === 0;
   $("#nextBtn").disabled = current === slides.length - 1;
+  $("#sidePrev").hidden = current === 0;
+  $("#sideNext").hidden = current === slides.length - 1;
   document.body.classList.toggle("on-hero", current === SLIDE.HERO);
 }
 
