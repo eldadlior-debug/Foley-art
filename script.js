@@ -131,7 +131,7 @@ function exitFs() {
    SLIDE NAVIGATION
    ===================================================================== */
 const slides = $$(".slide");
-const SLIDE = { HERO: 0, LAYERS: 1, INTRO: 2, SCENE: 3, GUESS: 4, STUDIO: 5 };
+const SLIDE = { HERO: 0, LAYERS: 1, INTRO: 2, SCENE: 3, GUESS: 4, PERFORM: 5, STUDIO: 6 };
 let current = 0;
 const onLeaveHandlers = {};
 const onEnterHandlers = {};
@@ -229,6 +229,11 @@ document.addEventListener("keydown", (e) => {
     case SLIDE.SCENE:
       if (key === " ") { handled(); return scenePlayer.toggle(); }
       if (key === "f" || key === "F") { handled(); return scenePlayer.toggleFs(); }
+      break;
+
+    case SLIDE.PERFORM:
+      if (key === " ") { handled(); return performPlayer.toggle(); }
+      if (key === "f" || key === "F") { handled(); return performPlayer.toggleFs(); }
       break;
 
     case SLIDE.GUESS:
@@ -507,6 +512,8 @@ const introPlayer = createPlayer($("#introPlayer"), $("#introVideo"));
 const scenePlayer = createPlayer($("#scenePlayer"), $("#sceneVideo"));
 const guessPlayer = createPlayer($("#guessPlayer"), $("#guessVideo"));
 onLeaveHandlers[SLIDE.SCENE] = scenePlayer.pause;
+const performPlayer = createPlayer($("#performPlayer"), $("#performVideo"));
+onLeaveHandlers[SLIDE.PERFORM] = performPlayer.pause;
 onLeaveHandlers[SLIDE.INTRO] = introPlayer.pause;
 onLeaveHandlers[SLIDE.GUESS] = guessPlayer.pause;
 
