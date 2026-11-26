@@ -49,6 +49,7 @@ const GUESS_CARDS = [
     answer: "",
     sound: "",
     answerVideo: "assets/cards/answer1.mp4",
+    pairVideo: "assets/cards/pair1.mp4",   // scene + Foley side by side in ONE file (perfect sync)
     backImage: "assets/cards/clip1-prop.jpg",
   },
   {
@@ -57,6 +58,7 @@ const GUESS_CARDS = [
     answer: "",
     sound: "",
     answerVideo: "assets/cards/answer2.mp4",
+    pairVideo: "assets/cards/pair2.mp4",   // scene + Foley side by side in ONE file (perfect sync)
     backImage: "assets/cards/clip2-prop.jpg",
   },
   {
@@ -65,6 +67,7 @@ const GUESS_CARDS = [
     answer: "",
     sound: "",
     answerVideo: "assets/cards/answer3.mp4",
+    pairVideo: "assets/cards/pair3.mp4",   // scene + Foley side by side in ONE file (perfect sync)
     backImage: "assets/cards/clip3-prop.jpg",
   },
   {
@@ -73,6 +76,7 @@ const GUESS_CARDS = [
     answer: "",
     sound: "",
     answerVideo: "assets/cards/answer4.mp4",
+    pairVideo: "assets/cards/pair4.mp4",   // scene + Foley side by side in ONE file (perfect sync)
     backImage: "assets/cards/clip4-prop.jpg",
   },
   {
@@ -81,6 +85,7 @@ const GUESS_CARDS = [
     answer: "",
     sound: "",
     answerVideo: "assets/cards/answer5.mp4",
+    pairVideo: "assets/cards/pair5.mp4",   // scene + Foley side by side in ONE file (perfect sync)
     backImage: "",
   },
 ];
@@ -687,6 +692,7 @@ const Book = (() => {  // the opened-card view
     allVideos.push(video);
     const toggle = () => {
       if (video.paused || video.ended) {
+        if (typeof stopSync === "function") stopSync();
         allVideos.forEach((v) => v !== video && v.pause());
         guessPlayer.pause();
         video.muted = false;
@@ -749,8 +755,22 @@ const Book = (() => {  // the opened-card view
     $(".pane-answer video", panes).preload = "metadata";
     $('[data-el="title"]', panes).textContent = card.title || "";
     $('[data-el="title2"]', panes).textContent = card.title || "";
+    // "Play both": one video file holds the scene (left part) and the Foley
+    // (right part), so both screens come from the same clock. The scene box
+    // shows the left part; a canvas in the Foley box paints the right part.
+    const sBox = $(".pane-scene .page-video", panes), aBox = $(".pane-answer .page-video", panes);
+    let syncVid = null, syncCanvas = null;
+    if (card.pairVideo) {
+      syncVid = document.createElement("video");
+      syncVid.className = "sync-vid"; syncVid.playsInline = true; syncVid.preload = "metadata";
+      syncVid.setAttribute("playsinline", ""); syncVid.src = card.pairVideo;
+      sBox.appendChild(syncVid);
+      syncCanvas = document.createElement("canvas");
+      syncCanvas.className = "sync-canvas";
+      aBox.appendChild(syncCanvas);
+    }
     return {
-      slide,
+      slide, sBox, aBox, syncVid, syncCanvas,
       paneScene: $(".pane-scene", panes), paneAnswer: $(".pane-answer", panes),
       scene: wireClip($(".pane-scene .page-video", panes)),
       answer: wireClip($(".pane-answer .page-video", panes)),
@@ -777,7 +797,7 @@ const Book = (() => {  // the opened-card view
   };
   const setCurrent = (i) => {
     if (i === curIndex && pairs[i].slide.classList.contains("is-current")) return;
-    syncToken++;
+    stopSync();
     pairs.forEach((p, j) => { if (j !== i) { p.scene.pause(); p.answer.pause(); } p.slide.classList.toggle("is-current", j === i); });
     curIndex = i;
     ({ scene: sceneVideo, answer: answerVideo, paneScene, paneAnswer } = pairs[i]);
@@ -916,7 +936,7 @@ const Book = (() => {  // the opened-card view
   function close() {
     if (openIndex < 0) return;
     openIndex = -1;
-    syncToken++;
+    stopSync();
     allVideos.forEach((v) => v.pause());
     stopAnims();
     fromCard = cardEls()[curIndex] || fromCard;
@@ -931,45 +951,63 @@ const Book = (() => {  // the opened-card view
     }
     closeTimer = setTimeout(() => { stopAnims(); overlay.hidden = true; overlay.classList.remove("is-open"); }, D);
   }
+  let syncToken = 0, syncPair = null, syncRaf = 0;
+  const SPLIT = 1570 / 2290;   // where the scene ends inside the pair file
+  function stopSync() {
+    syncToken++;
+    cancelAnimationFrame(syncRaf);
+    if (!syncPair) return;
+    const p = syncPair; syncPair = null;
+    p.syncVid.pause();
+    p.slide.classList.remove("is-sync");
+    p.sBox.classList.remove("is-playing"); p.aBox.classList.remove("is-playing");
+  }
   function playBoth() {
     allVideos.forEach((v) => v.pause());
     guessPlayer.pause();
-    sceneVideo.muted = true;      // the scene stays silent…
-    answerVideo.muted = false;    // …you hear the real Foley performance
-    // Start both on the same frame: seek both, wait until both are ready, then
-    // start together. While they play, the silent scene follows the Foley clock.
-    const token = ++syncToken;
-    const ready = (v) => new Promise((res) => {
-      const ok = () => v.readyState >= 3 && !v.seeking;
-      if (ok()) return res();
-      const on = () => { if (ok()) { v.removeEventListener("seeked", on); v.removeEventListener("canplay", on); res(); } };
-      v.addEventListener("seeked", on); v.addEventListener("canplay", on);
-      setTimeout(res, 1500);
-    });
-    sceneVideo.currentTime = 0; answerVideo.currentTime = 0;
-    Promise.all([ready(sceneVideo), ready(answerVideo)]).then(() => {
+    const p = pairs[curIndex];
+    if (!p || !p.syncVid) return;
+    if (syncPair === p && !p.syncVid.paused) { p.syncVid.currentTime = 0; return; }
+    stopSync();
+    const token = syncToken;
+    syncPair = p;
+    const v = p.syncVid, cv = p.syncCanvas, ctx2 = cv.getContext("2d");
+    p.slide.classList.add("is-sync");
+    p.sBox.classList.add("is-playing"); p.aBox.classList.add("is-playing");
+    const paint2 = () => {
       if (token !== syncToken) return;
-      const a = answerVideo.play(), b = sceneVideo.play();
-      Promise.all([a, b].map((p) => p && p.catch(() => {}))).then(() => {
-        if (token !== syncToken) return;
-        sceneVideo.currentTime = answerVideo.currentTime;
-        const follow = () => {
-          if (token !== syncToken || answerVideo.paused || answerVideo.ended) return;
-          const drift = sceneVideo.currentTime - answerVideo.currentTime;
-          if (!sceneVideo.paused && Math.abs(drift) > 0.06) sceneVideo.currentTime = answerVideo.currentTime;
-          requestAnimationFrame(follow);
-        };
-        requestAnimationFrame(follow);
-      });
-    });
+      const r = cv.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
+      const cw = Math.round(r.width * dpr), ch = Math.round(r.height * dpr);
+      if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
+      if (v.videoWidth) {
+        const sx = v.videoWidth * SPLIT;
+        ctx2.drawImage(v, sx, 0, v.videoWidth - sx, v.videoHeight, 0, 0, cw, ch);
+      }
+      syncRaf = requestAnimationFrame(paint2);
+    };
+    if ("requestVideoFrameCallback" in v) {
+      const onFrame = () => { if (token !== syncToken) return; paint2(); cancelAnimationFrame(syncRaf); v.requestVideoFrameCallback(onFrame); };
+      v.requestVideoFrameCallback(onFrame);
+    }
+    syncRaf = requestAnimationFrame(paint2);
+    v.muted = false;
+    v.currentTime = 0;
+    v.play().catch(() => {});
+    v.onended = () => { if (token === syncToken) { p.sBox.classList.remove("is-playing"); p.aBox.classList.remove("is-playing"); } };
   }
-  let syncToken = 0;
   $(".app-both", overlay).addEventListener("click", (e) => { e.stopPropagation(); playBoth(); });
   $(".app-close", overlay).addEventListener("click", (e) => { e.stopPropagation(); close(); });
   overlay.addEventListener("click", (e) => {
     const t = e.target;
     if (t.closest(".app-close, .app-both, .app-title")) return;
     const slide = t.closest(".car-slide");
+    if (slide && syncPair && syncPair.slide === slide && t.closest(".page-video")) {
+      e.stopPropagation(); e.preventDefault();
+      const v = syncPair.syncVid;
+      if (v.paused || v.ended) { if (v.ended) v.currentTime = 0; v.play().catch(() => {}); syncPair.sBox.classList.add("is-playing"); syncPair.aBox.classList.add("is-playing"); }
+      else { v.pause(); syncPair.sBox.classList.remove("is-playing"); syncPair.aBox.classList.remove("is-playing"); }
+      return;
+    }
     if (slide && t.closest(".app-pane")) {
       const i = pairs.findIndex((p) => p.slide === slide);
       if (i !== curIndex) { e.stopPropagation(); e.preventDefault(); centre(i); }
@@ -982,7 +1020,7 @@ const Book = (() => {  // the opened-card view
   panel.addEventListener("touchstart", (e) => { sy = e.target.closest(".page-video") ? null : e.touches[0].clientY; }, { passive: true });
   panel.addEventListener("touchend", (e) => { if (sy !== null && e.changedTouches[0].clientY - sy > 90) close(); sy = null; }, { passive: true });
 
-  onLeaveHandlers[SLIDE.GUESS] = () => { guessPlayer.pause(); allVideos.forEach((v) => v.pause()); close(); };
+  onLeaveHandlers[SLIDE.GUESS] = () => { guessPlayer.pause(); allVideos.forEach((v) => v.pause()); stopSync(); close(); };
   return { isOpen: () => openIndex >= 0, close, playBoth, step };
 })();
 

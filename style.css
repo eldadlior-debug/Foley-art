@@ -922,3 +922,12 @@ body:has(.monitor.is-fs) .side-nav { display: none; }
 .car-slide .app-panes { width: 100%; }
 .car-slide:not(.is-current) .app-pane { cursor: pointer; }
 .car-slide:not(.is-current) .clip-play { pointer-events: none; }
+
+/* "Play both": one file, two screens (perfect sync) */
+.page-video .sync-vid, .page-video .sync-canvas { display: none; }
+.car-slide.is-sync .page-video .sync-vid {
+  display: block; position: absolute; top: 0; left: 0; height: 100%; width: calc(100% * 2290 / 1570);
+  max-width: none; object-fit: fill; z-index: 1; pointer-events: none;
+}
+.car-slide.is-sync .page-video .sync-canvas { display: block; position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+.car-slide.is-sync .clip-play { z-index: 2; }
