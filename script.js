@@ -277,6 +277,8 @@ document.addEventListener("keydown", (e) => {
       if (Book.isOpen()) {
         if (key === " ") { handled(); return Book.playBoth(); }
         if (key === "Escape") { handled(); return Book.close(); }
+        if (key === nextKey) { handled(); return Book.step(1); }
+        if (key === prevKey) { handled(); return Book.step(-1); }
       }
       if (key === " ") { handled(); return guessPlayer.toggle(); }
       break;
@@ -441,6 +443,106 @@ const Hero = (() => {
 })();
 onEnterHandlers[SLIDE.HERO] = Hero.start;
 onLeaveHandlers[SLIDE.HERO] = Hero.stop;
+
+/* =====================================================================
+   SLIDE 2 — Face-down channels show the opening slide's soundwave
+   (same layers, colours, glow, sparks and autopilot as the hero, scaled
+   into each card; each card has its own rhythm)
+   ===================================================================== */
+const LockWaves = (() => {
+  const items = $$(".channel").map((ch, i) => {
+    const canvas = $(".lock-canvas", ch);
+    return canvas && { ch, canvas, ctx: canvas.getContext("2d"), w: 0, h: 0, t: i * 7.3,
+      focus: { x: 0.5 }, level: 0, hit: 0, nextHit: 0.6 + i * 0.7, sparks: [] };
+  }).filter(Boolean);
+  let raf = 0, running = false, last = 0;
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    items.forEach((it) => {
+      it.w = it.canvas.clientWidth; it.h = it.canvas.clientHeight;
+      it.canvas.width = it.w * dpr; it.canvas.height = it.h * dpr;
+      it.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    });
+  }
+  function audioLevel(it, dt) {
+    const t = it.t;
+    it.nextHit -= dt;
+    if (it.nextHit <= 0) { it.hit = 0.7 + Math.random() * 0.3; it.nextHit = 1.1 + Math.random() * 2.2; }
+    it.hit *= Math.pow(0.04, dt);
+    const bed = 0.32 + 0.18 * Math.sin(t * 0.9) + 0.1 * Math.sin(t * 0.37 + 1);
+    const flutter = 0.22 * Math.abs(Math.sin(t * 6.3) * Math.sin(t * 2.7 + 0.5));
+    const target = clamp(bed + flutter + it.hit * 0.75, 0, 1.4);
+    it.level += (target - it.level) * Math.min(1, dt * 9);
+    return it.level;
+  }
+  function draw(it, dt) {
+    const { ctx, w, h } = it;
+    ctx.clearRect(0, 0, w, h);
+    if (it.ch.classList.contains("is-revealed") || !w) return;
+    it.t += dt;
+    const t = it.t, lv = audioLevel(it, dt), focus = it.focus;
+    const ax = 0.5 + 0.34 * Math.sin(t * 0.23) + 0.06 * Math.sin(t * 0.71);
+    focus.x += (ax - focus.x) * Math.min(1, dt * 2.2);
+    const s = clamp(w / 420, 0.7, 1);             // scale the hero's amplitudes into the card
+    const baseY = h * 0.5;
+    const amp = (12 + lv * 46) * s;
+    for (let layer = 0; layer < 5; layer++) {
+      ctx.beginPath();
+      const phase = t * (1.6 + layer * 0.55);
+      const lf = 1 - layer * 0.14;
+      for (let x = 0; x <= w; x += 2) {
+        const nx = x / w;
+        const f1 = Math.exp(-Math.pow((nx - focus.x) * 2.6, 2));
+        const f2 = 0.55 * Math.exp(-Math.pow((nx - (1 - focus.x)) * 3.4, 2));
+        const env = Math.sin(nx * Math.PI);
+        const fo = f1 + f2;
+        const y = baseY +
+          Math.sin(nx * (16 + layer * 3) + phase + layer) * amp * lf * fo * env +
+          Math.sin(nx * 47 - phase * 1.9) * amp * 0.22 * env * (0.35 + fo) +
+          Math.sin(nx * 5 + t * 0.6 + layer) * 6 * s * env;
+        x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      const g = ctx.createLinearGradient(0, 0, w, 0);
+      const al = [0.75, 0.42, 0.26, 0.16, 0.1][layer] * (0.7 + lv * 0.4);
+      g.addColorStop(0, "rgba(229,169,60,0)");
+      g.addColorStop(clamp(focus.x - 0.28, 0.01, 0.97), `rgba(229,169,60,${al * 0.45})`);
+      g.addColorStop(clamp(focus.x, 0.02, 0.98), `rgba(255,214,140,${Math.min(1, al)})`);
+      g.addColorStop(clamp(focus.x + 0.28, 0.03, 0.99), `rgba(229,169,60,${al * 0.45})`);
+      g.addColorStop(1, "rgba(229,169,60,0)");
+      ctx.strokeStyle = g;
+      ctx.lineWidth = layer === 0 ? 2 : 1;
+      if (layer === 0) { ctx.shadowColor = "rgba(245,190,90,.7)"; ctx.shadowBlur = 12 + lv * 14; }
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+    if (it.hit > 0.65 && Math.random() < 0.5) {
+      for (let i = 0; i < 4; i++) it.sparks.push({
+        x: focus.x * w + (Math.random() - 0.5) * 120 * s, y: baseY,
+        vx: (Math.random() - 0.5) * 1.2, vy: -Math.random() * 2.2 - 0.6, life: 1,
+      });
+    }
+    it.sparks = it.sparks.filter((p) => (p.life -= dt * 0.7) > 0);
+    for (const p of it.sparks) {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.015;
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(255,220,150,${p.life * 0.9})`;
+      ctx.arc(p.x, p.y, 1.4 * p.life + 0.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  function frame(now) {
+    if (!running) return;
+    const dt = Math.min(0.05, last ? (now - last) / 1000 : 0.016);
+    last = now;
+    items.forEach((it) => draw(it, dt));
+    raf = requestAnimationFrame(frame);
+  }
+  window.addEventListener("resize", () => running && resize());
+  const start = () => { if (running) return; running = true; last = 0; resize(); raf = requestAnimationFrame(frame); };
+  const stop = () => { running = false; cancelAnimationFrame(raf); };
+  return { start, stop };
+})();
 
 /* =====================================================================
    SLIDE 2 — Reveal soundtrack layers one by one
@@ -628,13 +730,121 @@ const Book = (() => {  // the opened-card view
     grid.appendChild(el);
   });
 
-  /* ----- The book ----- */
-  const sceneBox = $(".pane-scene .page-video", overlay);
-  const answerBox = $(".pane-answer .page-video", overlay);
-  const sceneVideo = wireClip(sceneBox);
-  const answerVideo = wireClip(answerBox);
-  const titleEl = $('[data-el="title"]', overlay), title2El = $('[data-el="title2"]', overlay), numEl = $('[data-el="num"]', overlay);
-  let openIndex = -1, closeTimer = 0, fromCard = null;
+  /* ----- The opened view: a carousel of all the pairs (like the iPhone
+     app switcher). Swipe with two fingers / a finger, or use the arrows. ----- */
+  const tpl = $(".app-panes", overlay);
+  const track = document.createElement("div");
+  track.className = "app-track";
+  tpl.replaceWith(track);
+  const numEl = $('[data-el="num"]', overlay);
+  const pairs = GUESS_CARDS.map((card, i) => {
+    const slide = document.createElement("div");
+    slide.className = "car-slide";
+    const panes = tpl.cloneNode(true);
+    slide.appendChild(panes);
+    track.appendChild(slide);
+    $(".pane-scene video", panes).src = card.video + "#t=0.1";
+    $(".pane-answer video", panes).src = (card.answerVideo || card.video) + "#t=0.1";
+    $(".pane-scene video", panes).preload = "metadata";
+    $(".pane-answer video", panes).preload = "metadata";
+    $('[data-el="title"]', panes).textContent = card.title || "";
+    $('[data-el="title2"]', panes).textContent = card.title || "";
+    return {
+      slide,
+      paneScene: $(".pane-scene", panes), paneAnswer: $(".pane-answer", panes),
+      scene: wireClip($(".pane-scene .page-video", panes)),
+      answer: wireClip($(".pane-answer .page-video", panes)),
+    };
+  });
+  const cardEls = () => $$(".flip-card", grid);
+  let openIndex = -1, curIndex = 0, closeTimer = 0, fromCard = null;
+  let sceneVideo = pairs[0].scene, answerVideo = pairs[0].answer;
+  let paneScene = pairs[0].paneScene, paneAnswer = pairs[0].paneAnswer;
+
+  // Neighbours shrink and dim the further they are from the centre
+  const paint = () => {
+    const mid = innerWidth / 2;
+    let best = 0, bestD = 1e9;
+    pairs.forEach((p, i) => {
+      const r = p.slide.getBoundingClientRect();
+      const d = Math.abs(r.left + r.width / 2 - mid);
+      if (d < bestD) { bestD = d; best = i; }
+      const k = clamp(d / (r.width || 1), 0, 1);
+      p.slide.style.transform = `scale(${(1 - 0.16 * k).toFixed(4)})`;
+      p.slide.style.opacity = (1 - 0.6 * k).toFixed(3);
+    });
+    return best;
+  };
+  const setCurrent = (i) => {
+    if (i === curIndex && pairs[i].slide.classList.contains("is-current")) return;
+    syncToken++;
+    pairs.forEach((p, j) => { if (j !== i) { p.scene.pause(); p.answer.pause(); } p.slide.classList.toggle("is-current", j === i); });
+    curIndex = i;
+    ({ scene: sceneVideo, answer: answerVideo, paneScene, paneAnswer } = pairs[i]);
+    numEl.textContent = `SFX ${pad(i + 1)}`;
+    if (openIndex >= 0) openIndex = i;
+  };
+  /* The track moves with a transform we fully control (no browser scroll
+     snapping), so every move is one smooth glide that lands exactly. */
+  let pos = 0, dragX = 0, animUntil = 0, loopRaf = 0;
+  const offsetFor = (i) => pairs[0].slide.offsetLeft - pairs[i].slide.offsetLeft;
+  const apply = () => { track.style.transform = `translate3d(${offsetFor(pos) + dragX}px, 0, 0)`; };
+  const loop = () => {
+    setCurrent(paint());
+    if (performance.now() < animUntil) loopRaf = requestAnimationFrame(loop);
+  };
+  const kick = (ms) => { animUntil = Math.max(animUntil, performance.now() + ms); cancelAnimationFrame(loopRaf); loopRaf = requestAnimationFrame(loop); };
+  const centre = (i, behavior = "smooth") => {
+    pos = clamp(i, 0, pairs.length - 1); dragX = 0;
+    if (behavior === "smooth") {
+      track.style.transition = "transform .6s cubic-bezier(.22, 1, .36, 1)";
+      apply(); kick(700);
+    } else {
+      track.style.transition = "none"; apply(); void track.offsetWidth; track.style.transition = "";
+      setCurrent(paint());
+    }
+  };
+  const step = (dir) => { if (clamp(pos + dir, 0, pairs.length - 1) !== pos) centre(pos + dir); };
+  const fwd = SETTINGS.rtlArrows ? -1 : 1;   // RTL: the next card sits to the left
+
+  // Two-finger swipe on a trackpad (or a mouse wheel): one card per gesture
+  let wheelAcc = 0, wheelLock = 0, wheelQuiet = 0;
+  overlay.addEventListener("wheel", (e) => {
+    if (openIndex < 0) return;
+    e.preventDefault();
+    const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY * fwd;
+    clearTimeout(wheelQuiet);
+    wheelQuiet = setTimeout(() => { wheelLock = 0; wheelAcc = 0; }, 180);  // gesture (incl. momentum) ended
+    if (wheelLock) return;
+    wheelAcc += d;
+    if (Math.abs(wheelAcc) > 35) { wheelLock = 1; step(wheelAcc * fwd > 0 ? 1 : -1); wheelAcc = 0; }
+  }, { passive: false });
+
+  // Finger drag: the track follows the finger, then glides to the nearest card
+  let tx0 = null, ty0 = 0, tt0 = 0, horiz = false;
+  track.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1) return;
+    tx0 = e.touches[0].clientX; ty0 = e.touches[0].clientY; tt0 = performance.now(); horiz = false;
+    track.style.transition = "none";
+  }, { passive: true });
+  track.addEventListener("touchmove", (e) => {
+    if (tx0 === null) return;
+    const dx = e.touches[0].clientX - tx0, dy = e.touches[0].clientY - ty0;
+    if (!horiz && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) horiz = true;
+    if (!horiz) return;
+    const edge = (pos === 0 && dx * fwd > 0) || (pos === pairs.length - 1 && dx * fwd < 0);
+    dragX = edge ? dx * 0.3 : dx;
+    apply(); setCurrent(paint());
+  }, { passive: true });
+  track.addEventListener("touchend", (e) => {
+    if (tx0 === null) return;
+    const dx = e.changedTouches[0].clientX - tx0, v = dx / Math.max(1, performance.now() - tt0);
+    tx0 = null;
+    if (!horiz) { track.style.transition = ""; return; }
+    const w = pairs[0].slide.offsetWidth;
+    const far = Math.abs(dx) > w * 0.25 || Math.abs(v) > 0.4;
+    centre(pos + (far ? (dx * fwd < 0 ? 1 : -1) : 0));   // RTL: finger moving right brings the next card
+  }, { passive: true });
 
   // iPhone-style: the panel starts exactly on top of the card and springs to full screen
 
@@ -643,7 +853,6 @@ const Book = (() => {  // the opened-card view
      1) the tapped card zooms up to fill the screen with the scene,
      2) it shrinks back into a rounded card on the right while the Foley
         card slides in from the left, ending side by side. */
-  const paneScene = $(".pane-scene", overlay), paneAnswer = $(".pane-answer", overlay);
   const extras = $$(".app-head, .app-both", overlay);
   const EASE = "cubic-bezier(.22, .9, .25, 1)";
   const SPRING = (() => {
@@ -670,20 +879,16 @@ const Book = (() => {  // the opened-card view
   };
 
   function open(i, fromEl) {
-    const card = GUESS_CARDS[i];
     allVideos.forEach((v) => v.pause());
     guessPlayer.pause();
     clearTimeout(closeTimer);
     stopAnims();
-    openIndex = i;
     fromCard = fromEl || null;
-    sceneVideo.src = card.video + "#t=0.1";
-    answerVideo.src = (card.answerVideo || card.video) + "#t=0.1";
-    titleEl.textContent = card.title || "";
-    title2El.textContent = card.title || "";
-    numEl.textContent = `SFX ${pad(i + 1)}`;
     overlay.hidden = false;
     overlay.classList.add("is-open");
+    centre(i, "auto");
+    setCurrent(i); openIndex = i;
+    paint();
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const S = rectOf(paneScene), A = rectOf(paneAnswer);
@@ -702,6 +907,7 @@ const Book = (() => {  // the opened-card view
     ], { duration: D, delay: 60, easing: SPRING, fill: "backwards" }));
     extras.forEach((el) => anims.push(el.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }],
       { duration: 380, delay: 380, easing: "ease-out", fill: "backwards" })));
+    pairs.forEach((p, j) => { if (j !== i) anims.push(p.slide.animate([{ opacity: 0 }, { opacity: p.slide.style.opacity }], { duration: 420, delay: 360, easing: "ease-out", fill: "backwards" })); });
     anims.push(overlay.animate([
       { backgroundColor: "rgba(10,10,12,0)", backdropFilter: "blur(0px)" },
       { backgroundColor: "rgba(10,10,12,1)", backdropFilter: "blur(14px)" },
@@ -710,14 +916,17 @@ const Book = (() => {  // the opened-card view
   function close() {
     if (openIndex < 0) return;
     openIndex = -1;
-    sceneVideo.pause(); answerVideo.pause();
+    syncToken++;
+    allVideos.forEach((v) => v.pause());
     stopAnims();
+    fromCard = cardEls()[curIndex] || fromCard;
     const S = rectOf(paneScene), A = rectOf(paneAnswer);
     const D = 520;
     if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
       anims.push(paneScene.animate([{ transform: "none" }, { transform: fromCard ? toRect(S, rectOf(fromCard)) : "scale(.5)", borderRadius: "16px" }], { duration: D, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" }));
       anims.push(paneAnswer.animate([{ transform: "none", opacity: 1 }, { transform: `translateX(${-(A.right + 60)}px)`, opacity: .6 }], { duration: D, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" }));
       extras.forEach((el) => anims.push(el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: "forwards" })));
+      pairs.forEach((p, j) => { if (j !== curIndex) anims.push(p.slide.animate([{ opacity: p.slide.style.opacity }, { opacity: 0 }], { duration: 220, fill: "forwards" })); });
       anims.push(overlay.animate([{ backgroundColor: "rgba(10,10,12,1)" }, { backgroundColor: "rgba(10,10,12,0)" }], { duration: D, fill: "forwards" }));
     }
     closeTimer = setTimeout(() => { stopAnims(); overlay.hidden = true; overlay.classList.remove("is-open"); }, D);
@@ -725,22 +934,56 @@ const Book = (() => {  // the opened-card view
   function playBoth() {
     allVideos.forEach((v) => v.pause());
     guessPlayer.pause();
-    sceneVideo.currentTime = 0; answerVideo.currentTime = 0;
     sceneVideo.muted = true;      // the scene stays silent…
     answerVideo.muted = false;    // …you hear the real Foley performance
-    sceneVideo.play().catch(() => {});
-    answerVideo.play().catch(() => {});
+    // Start both on the same frame: seek both, wait until both are ready, then
+    // start together. While they play, the silent scene follows the Foley clock.
+    const token = ++syncToken;
+    const ready = (v) => new Promise((res) => {
+      const ok = () => v.readyState >= 3 && !v.seeking;
+      if (ok()) return res();
+      const on = () => { if (ok()) { v.removeEventListener("seeked", on); v.removeEventListener("canplay", on); res(); } };
+      v.addEventListener("seeked", on); v.addEventListener("canplay", on);
+      setTimeout(res, 1500);
+    });
+    sceneVideo.currentTime = 0; answerVideo.currentTime = 0;
+    Promise.all([ready(sceneVideo), ready(answerVideo)]).then(() => {
+      if (token !== syncToken) return;
+      const a = answerVideo.play(), b = sceneVideo.play();
+      Promise.all([a, b].map((p) => p && p.catch(() => {}))).then(() => {
+        if (token !== syncToken) return;
+        sceneVideo.currentTime = answerVideo.currentTime;
+        const follow = () => {
+          if (token !== syncToken || answerVideo.paused || answerVideo.ended) return;
+          const drift = sceneVideo.currentTime - answerVideo.currentTime;
+          if (!sceneVideo.paused && Math.abs(drift) > 0.06) sceneVideo.currentTime = answerVideo.currentTime;
+          requestAnimationFrame(follow);
+        };
+        requestAnimationFrame(follow);
+      });
+    });
   }
+  let syncToken = 0;
   $(".app-both", overlay).addEventListener("click", (e) => { e.stopPropagation(); playBoth(); });
   $(".app-close", overlay).addEventListener("click", (e) => { e.stopPropagation(); close(); });
-  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+  overlay.addEventListener("click", (e) => {
+    const t = e.target;
+    if (t.closest(".app-close, .app-both, .app-title")) return;
+    const slide = t.closest(".car-slide");
+    if (slide && t.closest(".app-pane")) {
+      const i = pairs.findIndex((p) => p.slide === slide);
+      if (i !== curIndex) { e.stopPropagation(); e.preventDefault(); centre(i); }
+      return;
+    }
+    close();   // anywhere outside the open screens
+  }, true);
   // Swipe down on the opened card closes it (like going home on an iPhone)
   let sy = null;
   panel.addEventListener("touchstart", (e) => { sy = e.target.closest(".page-video") ? null : e.touches[0].clientY; }, { passive: true });
   panel.addEventListener("touchend", (e) => { if (sy !== null && e.changedTouches[0].clientY - sy > 90) close(); sy = null; }, { passive: true });
 
   onLeaveHandlers[SLIDE.GUESS] = () => { guessPlayer.pause(); allVideos.forEach((v) => v.pause()); close(); };
-  return { isOpen: () => openIndex >= 0, close, playBoth };
+  return { isOpen: () => openIndex >= 0, close, playBoth, step };
 })();
 
 /* =====================================================================
@@ -1296,3 +1539,10 @@ buildNav();
   onEnterHandlers[start]?.();
   updateNav();
 })();
+
+{
+  const prevEnter = onEnterHandlers[SLIDE.LAYERS], prevLeave = onLeaveHandlers[SLIDE.LAYERS];
+  onEnterHandlers[SLIDE.LAYERS] = () => { prevEnter && prevEnter(); LockWaves.start(); };
+  onLeaveHandlers[SLIDE.LAYERS] = () => { prevLeave && prevLeave(); LockWaves.stop(); };
+  if (current === SLIDE.LAYERS) LockWaves.start();
+}
