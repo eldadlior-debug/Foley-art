@@ -633,7 +633,7 @@ const Book = (() => {  // the opened-card view
   const answerBox = $(".pane-answer .page-video", overlay);
   const sceneVideo = wireClip(sceneBox);
   const answerVideo = wireClip(answerBox);
-  const titleEl = $('[data-el="title"]', overlay);
+  const titleEl = $('[data-el="title"]', overlay), title2El = $('[data-el="title2"]', overlay), numEl = $('[data-el="num"]', overlay);
   let openIndex = -1, closeTimer = 0, fromCard = null;
 
   // iPhone-style: the panel starts exactly on top of the card and springs to full screen
@@ -653,6 +653,8 @@ const Book = (() => {  // the opened-card view
     sceneVideo.src = card.video + "#t=0.1";
     answerVideo.src = (card.answerVideo || card.video) + "#t=0.1";
     titleEl.textContent = card.title || "";
+    title2El.textContent = card.title || "";
+    numEl.textContent = `SFX ${pad(i + 1)}`;
     overlay.hidden = false;
     overlay.classList.remove("is-open", "is-closing");
     panel.style.transition = "none";

@@ -32,7 +32,7 @@
   <!-- ===== Top studio bar ===== -->
   <header class="studio-bar" aria-hidden="true">
     <div class="rec"><span class="rec-dot"></span>REC</div>
-    <div class="studio-bar-title">THE FOLEY ART · STUDIO</div>
+    <div class="studio-bar-title">BEHIND THE SCENES OF THE SOUNDTRACK</div>
     <div class="studio-bar-count"><span id="slideNum">01</span> / <span id="slideTotal">05</span></div>
   </header>
 
@@ -51,7 +51,7 @@
           <span class="en">WORKSHOP · LIVE SESSION</span>
         </div>
         <h1 class="hero-title">
-          <span class="hero-lead" data-motion="pulse"><span>מאחורי הקלעים של</span> <span>הסאונד בקולנוע</span></span>
+          <span class="hero-lead" data-motion="pulse"><span>מאחורי הקלעים של</span> <span>הפסקול בקולנוע</span></span>
           <span class="hero-name">אמנות הפולי</span>
         </h1>
         <div class="hero-sub en">THE FOLEY ART</div>
@@ -303,21 +303,29 @@
               <button class="app-close" type="button" aria-label="סגור">
                 <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
               </button>
-              <div class="app-title" data-el="title"></div>
+              <div class="app-title"><span class="en" data-el="num"></span><span>נחשו ממה עשוי הצליל</span></div>
             </div>
             <div class="app-panes">
               <div class="app-pane pane-scene">
-                <div class="pane-label"><span class="en">THE SCENE</span> · הסצנה</div>
                 <div class="page-video">
                   <video playsinline preload="auto"></video>
                   <button type="button" class="clip-play" aria-label="נגן את הסצנה"></button>
+                  <span class="pane-tag en">SCENE</span>
+                </div>
+                <div class="pane-caption">
+                  <div class="pane-kicker">הסצנה</div>
+                  <div class="pane-title" data-el="title"></div>
                 </div>
               </div>
               <div class="app-pane pane-answer">
-                <div class="pane-label gold"><span class="en">THE FOLEY</span> · כך זה נשמע באמת</div>
                 <div class="page-video">
                   <video playsinline preload="auto"></video>
                   <button type="button" class="clip-play" aria-label="נגן את התשובה"></button>
+                  <span class="pane-tag en">FOLEY</span>
+                </div>
+                <div class="pane-caption">
+                  <div class="pane-kicker" data-el="title2"></div>
+                  <div class="pane-title gold">כך זה נוצר</div>
                 </div>
               </div>
             </div>
