@@ -27,6 +27,37 @@ const MUSIC_TRACKS = [
    ===================================================================== */
 const SUBTITLES_FILE = "assets/subtitles.json";
 
+/* =====================================================================
+   CONFIG — Studio pages (slide 7 and its copies, slides 8 and 9)
+   Every page is the same studio with its own video, music and subtitles.
+   - title:     name in the slide list at the bottom
+   - stage:     small label above the monitor
+   - video:     the silent scene (played muted on purpose)
+   - tracks:    the music options (same shape as MUSIC_TRACKS above)
+   - subtitles: the timed-subtitles file for that page (made by "ייצוא JSON")
+   Add a row here to add another studio page.
+   ===================================================================== */
+const STUDIO_PAGES = [
+  { title: "אולפן פולי ומוזיקה חי", stage: "LIVE · FOLEY STAGE A",
+    video: "assets/silent-scene.mp4", tracks: MUSIC_TRACKS, subtitles: SUBTITLES_FILE },
+  { title: "אולפן פולי ומוזיקה חי 2", stage: "LIVE · FOLEY STAGE B",
+    video: "assets/studio2/silent-scene.mp4",
+    tracks: [
+      { title: "רצועה 1", subtitle: "", src: "assets/studio2/track1.mp3" },
+      { title: "רצועה 2", subtitle: "", src: "assets/studio2/track2.mp3" },
+      { title: "רצועה 3", subtitle: "", src: "assets/studio2/track3.mp3" },
+    ],
+    subtitles: "assets/studio2/subtitles.json" },
+  { title: "אולפן פולי ומוזיקה חי 3", stage: "LIVE · FOLEY STAGE C",
+    video: "assets/studio3/silent-scene.mp4",
+    tracks: [
+      { title: "רצועה 1", subtitle: "", src: "assets/studio3/track1.mp3" },
+      { title: "רצועה 2", subtitle: "", src: "assets/studio3/track2.mp3" },
+      { title: "רצועה 3", subtitle: "", src: "assets/studio3/track3.mp3" },
+    ],
+    subtitles: "assets/studio3/subtitles.json" },
+];
+
 /* Label of the "no music" row (keeps the scene fully silent) */
 const NO_MUSIC_LABEL = "ללא מוזיקה (שקט מוחלט)";
 
@@ -149,8 +180,24 @@ function exitFs() {
 /* =====================================================================
    SLIDE NAVIGATION
    ===================================================================== */
+// The studio slide in index.html is the template; the other studio pages are copies of it
+(() => {
+  const tpl = $(".slide-studio");
+  let last = tpl;
+  STUDIO_PAGES.forEach((cfg, i) => {
+    const sec = i === 0 ? tpl : tpl.cloneNode(true);
+    sec.dataset.title = cfg.title;
+    sec.setAttribute("aria-label", cfg.title);
+    const v = $("#studioVideo", sec);
+    $("source", v).src = cfg.video;
+    if (i > 0) { v.removeAttribute("src"); v.load(); last.after(sec); last = sec; }
+    $(".monitor-tag .en", sec).textContent = cfg.stage;
+    $("#tlClip .en", sec).textContent = cfg.video.split("/").pop();
+    $(".media-missing code", sec).textContent = cfg.video;
+  });
+})();
 const slides = $$(".slide");
-const SLIDE = { HERO: 0, LAYERS: 1, INTRO: 2, SCENE: 3, GUESS: 4, PERFORM: 5, STUDIO: 6 };
+const SLIDE = { HERO: 0, LAYERS: 1, INTRO: 2, SCENE: 3, GUESS: 4, PERFORM: 5, STUDIO: 6 };  // STUDIO = first studio page
 let current = 0;
 const onLeaveHandlers = {};
 const onEnterHandlers = {};
@@ -241,7 +288,9 @@ document.addEventListener("keydown", (e) => {
   if (key === "PageUp")   { handled(); return goTo(current - 1); }
 
   switch (current) {
-    case SLIDE.STUDIO:
+    case SLIDE.STUDIO: case SLIDE.STUDIO + 1: case SLIDE.STUDIO + 2: case SLIDE.STUDIO + 3: {
+      const Studio = studios[current - SLIDE.STUDIO];
+      if (!Studio) break;
       // Arrows & Space belong to the video here (normal + fullscreen)
       if (key === " " || key === "Spacebar") { handled(); return Studio.toggle(); }
       if (key === "ArrowLeft")  { handled(); return Studio.step(-SETTINGS.stepSeconds); }
@@ -254,6 +303,7 @@ document.addEventListener("keydown", (e) => {
       if (key === "o" || key === "O" || key === "ם") { handled(); return Studio.markOut(); }
       if (key === "Delete" || key === "Backspace") { handled(); return Studio.deleteSelected(); }
       return;
+    }
 
     case SLIDE.HERO:
       if (key === "Enter" || key === " ") { handled(); return goTo(SLIDE.LAYERS); }
@@ -1027,15 +1077,16 @@ const Book = (() => {  // the opened-card view
 /* =====================================================================
    SLIDE 5 — Live Foley & scoring studio
    ===================================================================== */
-const Studio = (() => {
-  const video = $("#studioVideo");
-  const monitor = $("#monitor");
+function makeStudio(root, cfg, pageIndex) {
+  const TRACKS = cfg.tracks || [];
+  const video = $("#studioVideo", root);
+  const monitor = $("#monitor", root);
   const screen = $(".monitor-screen", monitor);
-  const stateIcon = $("#monitorState");
-  const timeline = $("#timeline"), ruler = $("#tlRuler"), playhead = $("#playhead"), progress = $("#tlProgress");
-  const tcCur = $("#tcCurrent"), tcDur = $("#tcDuration"), monitorTc = $("#monitorTc");
-  const audioLane = $("#tlAudio"), audioLabel = $("#tlAudioLabel"), monitorMusic = $("#monitorMusic");
-  const studioRoot = $(".studio");
+  const stateIcon = $("#monitorState", root);
+  const timeline = $("#timeline", root), ruler = $("#tlRuler", root), playhead = $("#playhead", root), progress = $("#tlProgress", root);
+  const tcCur = $("#tcCurrent", root), tcDur = $("#tcDuration", root), monitorTc = $("#monitorTc", root);
+  const audioLane = $("#tlAudio", root), audioLabel = $("#tlAudioLabel", root), monitorMusic = $("#monitorMusic", root);
+  const studioRoot = $(".studio", root);
   const PAD = 16, PAD_L = 44; // timeline padding: right / left gutter with the eye (matches CSS)
 
   video.muted = true; // the scene is silent on purpose
@@ -1045,7 +1096,7 @@ const Studio = (() => {
   let dragging = false, wasPlaying = false, raf = 0, pseudoFs = false;
 
   /* ----- Music ----- */
-  const audios = MUSIC_TRACKS.map((t) => {
+  const audios = TRACKS.map((t) => {
     const a = new Audio();
     a.preload = "auto";
     a.loop = true;
@@ -1053,7 +1104,7 @@ const Studio = (() => {
     a.volume = SETTINGS.musicVolume;
     return a;
   });
-  const list = $("#trackList");
+  const list = $("#trackList", root);
   const check = `<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg>`;
   const rows = [];
   const makeRow = (idx, title, sub) => {
@@ -1070,7 +1121,7 @@ const Studio = (() => {
     rows.push({ el: r, idx });
     return r;
   };
-  MUSIC_TRACKS.forEach((t, i) => {
+  TRACKS.forEach((t, i) => {
     const r = makeRow(i, t.title, t.subtitle);
     audios[i].addEventListener("error", () => {
       if (!$(".track-missing", r)) $(".track-title", r).insertAdjacentHTML("beforeend", `<span class="track-missing">(קובץ חסר)</span>`);
@@ -1099,7 +1150,7 @@ const Studio = (() => {
       el.classList.toggle("is-on", on);
       el.setAttribute("aria-checked", on ? "true" : "false");
     });
-    const name = idx >= 0 ? MUSIC_TRACKS[idx].title : "";
+    const name = idx >= 0 ? TRACKS[idx].title : "";
     audioLane.classList.toggle("on", idx >= 0);
     audioLabel.textContent = idx >= 0 ? `♪ ${name}` : "— no music —";
     monitorMusic.textContent = idx >= 0 ? `♪ ${name}` : "NO MUSIC";
@@ -1110,8 +1161,8 @@ const Studio = (() => {
   function updateLive() {
     rows.forEach(({ el }) => el.classList.toggle("is-live", !video.paused));
   }
-  $("#musicVolume").value = SETTINGS.musicVolume;
-  $("#musicVolume").addEventListener("input", (e) => audios.forEach((a) => (a.volume = Number(e.target.value))));
+  $("#musicVolume", root).value = SETTINGS.musicVolume;
+  $("#musicVolume", root).addEventListener("input", (e) => audios.forEach((a) => (a.volume = Number(e.target.value))));
 
   /* ----- Transport ----- */
   function flashState(paused) {
@@ -1143,9 +1194,9 @@ const Studio = (() => {
   $$("source", video).forEach((s) => s.addEventListener("error", markMissing));
   setTimeout(() => { if (video.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) markMissing(); }, 1500);
 
-  $("#studioPlayBtn").addEventListener("click", toggle);
-  $("#stepBackBtn").addEventListener("click", () => step(-SETTINGS.stepSeconds));
-  $("#stepFwdBtn").addEventListener("click", () => step(+SETTINGS.stepSeconds));
+  $("#studioPlayBtn", root).addEventListener("click", toggle);
+  $("#stepBackBtn", root).addEventListener("click", () => step(-SETTINGS.stepSeconds));
+  $("#stepFwdBtn", root).addEventListener("click", () => step(+SETTINGS.stepSeconds));
 
   function loop() {
     cancelAnimationFrame(raf);
@@ -1236,11 +1287,11 @@ const Studio = (() => {
   window.addEventListener("resize", () => { buildRuler(); render(); });
 
   /* ----- Subtitles: live box + timed cues ----- */
-  const input = $("#subsInput"), out = $("#subtitleOut");
-  const cueText = $("#cueText"), cueStart = $("#cueStart"), cueEnd = $("#cueEnd");
-  const cueSave = $("#cueSave"), cueCancel = $("#cueCancel"), cueList = $("#cueList");
-  const cueStatus = $("#cueStatus"), cueCount = $("#cueCount"), tlSubs = $("#tlSubs");
-  const DRAFT_KEY = "foley-subtitles-draft";
+  const input = $("#subsInput", root), out = $("#subtitleOut", root);
+  const cueText = $("#cueText", root), cueStart = $("#cueStart", root), cueEnd = $("#cueEnd", root);
+  const cueSave = $("#cueSave", root), cueCancel = $("#cueCancel", root), cueList = $("#cueList", root);
+  const cueStatus = $("#cueStatus", root), cueCount = $("#cueCount", root), tlSubs = $("#tlSubs", root);
+  const DRAFT_KEY = pageIndex ? `foley-subtitles-draft-${pageIndex + 1}` : "foley-subtitles-draft";
   let editing = -1;          // index of the cue being edited, -1 = new cue
   let serverJson = "[]";     // what assets/subtitles.json currently holds
   let lastShown = null;
@@ -1329,7 +1380,7 @@ const Studio = (() => {
       el.style.width = `${((c.end - c.start) / d) * 100}%`;
       el.title = `${fmtCue(c.start)} → ${fmtCue(c.end)}  ${c.text}`;
       seek(mode === "end" ? c.end - 0.01 : c.start + 0.01); // preview the frame being trimmed
-      if (editing === i) { cueStart.value = fmtCue(c.start); cueEnd.value = fmtCue(c.end); }
+      if (editing === i) { const r = $(".cue-item.is-editing", cueList); if (r) { $(".cue-in-start", r).value = fmtCue(c.start); $(".cue-in-end", r).value = fmtCue(c.end); } }
     };
     const onUp = () => {
       el.removeEventListener("pointermove", onMove);
@@ -1340,7 +1391,6 @@ const Studio = (() => {
       const editObj = editing >= 0 ? cues[editing] : null;
       cues = clean(cues);
       editing = editObj ? cues.indexOf(editObj) : -1;
-      if (editObj) { cueStart.value = fmtCue(editObj.start); cueEnd.value = fmtCue(editObj.end); }
       refreshCues();
     };
     el.addEventListener("pointermove", onMove);
@@ -1354,6 +1404,40 @@ const Studio = (() => {
     cues.forEach((c, i) => {
       const li = document.createElement("li");
       li.className = "cue-item" + (i === editing ? " is-editing" : "");
+      if (i === editing) {
+        // Edit in place, inside the list itself, so the edit box is always where you tapped
+        li.innerHTML = `
+          <span class="cue-inline-times" dir="ltr">
+            <input type="text" class="cue-in-start" value="${fmtCue(c.start)}" aria-label="זמן התחלה" />
+            <span class="cue-arrow">→</span>
+            <input type="text" class="cue-in-end" value="${fmtCue(c.end)}" aria-label="זמן סוף" />
+          </span>
+          <input type="text" class="cue-in-text" value="${escHtml(c.text)}" aria-label="טקסט הכתובית" autocomplete="off" />
+          <button type="button" class="cue-icon ok" data-a="ok" title="שמירה" aria-label="שמירה"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg></button>
+          <button type="button" class="cue-icon" data-a="cancel" title="ביטול" aria-label="ביטול"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`;
+        const tIn = $(".cue-in-text", li), sIn = $(".cue-in-start", li), eIn = $(".cue-in-end", li);
+        const commit = () => {
+          const text = tIn.value.trim(), start = parseCue(sIn.value), end = parseCue(eIn.value);
+          if (!text) return flagError(tIn), tIn.focus();
+          if (!isFinite(start)) return flagError(sIn);
+          if (!isFinite(end) || end <= start) return flagError(eIn);
+          cues[i] = { start, end, text };
+          cues = clean(cues);
+          editing = -1;
+          refreshCues();
+        };
+        const cancel = () => { editing = -1; refreshCues(false); };
+        [tIn, sIn, eIn].forEach((el) => el.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") { e.preventDefault(); commit(); }
+          else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); cancel(); }
+        }));
+        [sIn, eIn].forEach((el) => el.addEventListener("blur", () => { const t = parseCue(el.value); if (isFinite(t)) el.value = fmtCue(t); }));
+        tIn.addEventListener("input", () => { if (cues[i]) { lastShown = null; out.textContent = input.value.trim() ? input.value : tIn.value; } });
+        $('[data-a="ok"]', li).addEventListener("click", commit);
+        $('[data-a="cancel"]', li).addEventListener("click", cancel);
+        cueList.appendChild(li);
+        return;
+      }
       li.innerHTML = `
         <button type="button" class="cue-time" dir="ltr" title="קפיצה לזמן">${fmtCue(c.start)} → ${fmtCue(c.end)}</button>
         <span class="cue-line">${escHtml(c.text)}</span>
@@ -1402,15 +1486,16 @@ const Studio = (() => {
   }
   function startEdit(i) {
     editing = i;
-    const c = cues[i];
-    cueText.value = c.text;
-    cueStart.value = fmtCue(c.start);
-    cueEnd.value = fmtCue(c.end);
-    cueSave.textContent = "עדכן שורה";
-    cueCancel.hidden = false;
     switchTab("timed");
     refreshCues(false);
-    $$(".cue-item", cueList)[i]?.scrollIntoView({ block: "nearest" });
+    const li = $(".cue-item.is-editing", cueList);
+    if (!li) return;
+    // scroll only the list, never the panel around it
+    const top = li.offsetTop - cueList.offsetTop;
+    if (top < cueList.scrollTop || top + li.offsetHeight > cueList.scrollTop + cueList.clientHeight) cueList.scrollTop = Math.max(0, top - 4);
+    const t = $(".cue-in-text", li);
+    t.focus({ preventScroll: true });
+    try { t.setSelectionRange(t.value.length, t.value.length); } catch (_) {}
   }
   function flagError(el) { el.classList.remove("err"); void el.offsetWidth; el.classList.add("err"); }
   function saveCue() {
@@ -1446,15 +1531,15 @@ const Studio = (() => {
   }
 
   function switchTab(name) {
-    $$(".subs-tab").forEach((b) => b.classList.toggle("is-active", b.dataset.tab === name));
-    $$(".subs-pane").forEach((p) => p.classList.toggle("is-active", p.dataset.pane === name));
+    $$(".subs-tab", root).forEach((b) => b.classList.toggle("is-active", b.dataset.tab === name));
+    $$(".subs-pane", root).forEach((p) => p.classList.toggle("is-active", p.dataset.pane === name));
   }
-  $$(".subs-tab").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
+  $$(".subs-tab", root).forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
 
   input.addEventListener("input", updateSubtitle);
-  $("#subsClear").addEventListener("click", () => { input.value = ""; updateSubtitle(); input.focus(); });
-  $("#markIn").addEventListener("click", markIn);
-  $("#markOut").addEventListener("click", markOut);
+  $("#subsClear", root).addEventListener("click", () => { input.value = ""; updateSubtitle(); input.focus(); });
+  $("#markIn", root).addEventListener("click", markIn);
+  $("#markOut", root).addEventListener("click", markOut);
   cueSave.addEventListener("click", saveCue);
   cueCancel.addEventListener("click", () => { resetForm(); refreshCues(false); });
   [cueText, cueStart, cueEnd].forEach((el) => el.addEventListener("keydown", (e) => {
@@ -1466,21 +1551,21 @@ const Studio = (() => {
   }));
 
   // Export → download subtitles.json (upload it to assets/ in GitHub)
-  $("#cueExport").addEventListener("click", () => {
+  $("#cueExport", root).addEventListener("click", () => {
     const blob = new Blob([toJson() + "\n"], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "subtitles.json";
+    a.download = cfg.subtitles.split("/").pop();
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   });
-  $("#cueImport").addEventListener("change", (e) => {
+  $("#cueImport", root).addEventListener("change", (e) => {
     const file = e.target.files[0]; if (!file) return;
     file.text().then((txt) => { cues = clean(JSON.parse(txt)); resetForm(); refreshCues(); })
       .catch(() => alertStatus("הקובץ אינו JSON תקין"));
     e.target.value = "";
   });
-  $("#cueRevert").addEventListener("click", () => {
+  $("#cueRevert", root).addEventListener("click", () => {
     try { localStorage.removeItem(DRAFT_KEY); } catch (_) {}
     cues = clean(JSON.parse(serverJson)); resetForm(); refreshCues(false);
   });
@@ -1497,10 +1582,10 @@ const Studio = (() => {
       cues = clean(list);
       refreshCues(false);
     };
-    fetch(SUBTITLES_FILE, { cache: "no-store" })
+    fetch(cfg.subtitles, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : []))
       .then(apply)
-      .catch(() => apply(typeof SUBTITLES_FALLBACK !== "undefined" ? SUBTITLES_FALLBACK : []));
+      .catch(() => apply(!pageIndex && typeof SUBTITLES_FALLBACK !== "undefined" ? SUBTITLES_FALLBACK : []));
   }
   cueLayoutReady = true;
   resetForm(0);
@@ -1510,8 +1595,8 @@ const Studio = (() => {
   /* ----- Show / hide all subtitles (eye on the subtitle track, or S) -----
      Starts HIDDEN on every page load, so the subtitles are a surprise
      when you reveal them during the workshop.                          */
-  const subsToggle = $("#subsToggle");
-  const timelineWrap = $(".timeline-wrap");
+  const subsToggle = $("#subsToggle", root);
+  const timelineWrap = $(".timeline-wrap", root);
   function setSubsVisible(on) {
     monitor.classList.toggle("subs-off", !on);
     timelineWrap.classList.toggle("subs-off", !on);
@@ -1527,10 +1612,10 @@ const Studio = (() => {
   let hintTimer = 0;
   const isFs = () => fsElement() === monitor || pseudoFs;
   function applyFsClass() {
-    const on = isFs();
+    const on = isFs(), was = monitor.classList.contains("is-fs");
     monitor.classList.toggle("is-fs", on);
-    document.body.classList.toggle("studio-fs", on);
-    $("#fsBtn").setAttribute("aria-label", on ? "יציאה ממסך מלא" : "מסך מלא");
+    if (on || was) document.body.classList.toggle("studio-fs", on);
+    $("#fsBtn", root).setAttribute("aria-label", on ? "יציאה ממסך מלא" : "מסך מלא");
     clearTimeout(hintTimer);
     monitor.classList.remove("hint-faded");
     if (on) hintTimer = setTimeout(() => monitor.classList.add("hint-faded"), 3500);
@@ -1547,7 +1632,7 @@ const Studio = (() => {
   }
   document.addEventListener("fullscreenchange", applyFsClass);
   document.addEventListener("webkitfullscreenchange", applyFsClass);
-  $("#fsBtn").addEventListener("click", () => toggleFs());
+  $("#fsBtn", root).addEventListener("click", () => toggleFs());
   screen.addEventListener("dblclick", () => toggleFs());
 
   selectTrack(-1);
@@ -1560,9 +1645,12 @@ const Studio = (() => {
     enter: () => { requestAnimationFrame(() => { buildRuler(); render(); }); },
     leave: () => { video.pause(); pauseAudio(); if (isFs()) toggleFs(false); },
   };
-})();
-onEnterHandlers[SLIDE.STUDIO] = Studio.enter;
-onLeaveHandlers[SLIDE.STUDIO] = Studio.leave;
+}
+const studios = STUDIO_PAGES.map((cfg, i) => makeStudio(slides[SLIDE.STUDIO + i], cfg, i));
+studios.forEach((st, i) => {
+  onEnterHandlers[SLIDE.STUDIO + i] = st.enter;
+  onLeaveHandlers[SLIDE.STUDIO + i] = st.leave;
+});
 
 /* =====================================================================
    BOOT

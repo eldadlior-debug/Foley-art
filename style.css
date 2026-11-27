@@ -713,6 +713,18 @@ body.on-hero .navbar:hover { opacity: 1; }
 .cue-footer { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .cue-status { flex: 1; font-size: 11px; color: #6fdc9a; }
 .cue-status.dirty { color: var(--gold-soft); }
+/* Editing a line happens inside the list row itself */
+.cue-item.is-editing { padding: 3px 6px; gap: 6px; background: rgba(224,38,58,.06); }
+.cue-item input[type="text"] {
+  font-family: var(--font-he); font-size: 15px; color: var(--text); min-width: 0;
+  background: rgba(0,0,0,.4); border: 1px solid rgba(229,169,60,.5); border-radius: 6px; padding: 2px 8px; height: 26px; outline: none;
+}
+.cue-item input[type="text"]:focus { box-shadow: 0 0 0 3px rgba(229,169,60,.14); }
+.cue-item input.err { animation: shake .4s; border-color: var(--crimson) !important; }
+.cue-in-text { flex: 1 1 auto; }
+.cue-inline-times { flex: none; display: flex; align-items: center; gap: 3px; }
+.cue-inline-times input[type="text"] { width: 64px; text-align: center; font-family: ui-monospace, Menlo, monospace; font-size: 11px; padding: 2px; color: var(--gold-soft); }
+.cue-icon.ok { color: #6fdc9a; }
 
 /* Subtitle lane on the timeline */
 .tl-track-subs { height: 22px; overflow: hidden; }
