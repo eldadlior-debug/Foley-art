@@ -51,10 +51,8 @@ const STUDIO_PAGES = [
     subtitles: "assets/studio2/subtitles.json", foley: "" },
   { title: "אולפן פולי ומוזיקה חי 3", stage: "LIVE · FOLEY STAGE C",
     video: "assets/studio3/silent-scene.mp4",
-    tracks: [
-      { title: "הפסקול המקורי", subtitle: "Original soundtrack", src: "assets/studio3/crab.mp3" },
-    ],
-    subtitles: "assets/studio3/subtitles.json", foley: "" },
+    tracks: [],
+    subtitles: "assets/studio3/subtitles.json", foley: "assets/studio3/foley.mp3" },
 ];
 
 /* Label of the "no music" row (keeps the scene fully silent) */
