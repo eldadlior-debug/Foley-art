@@ -962,3 +962,4 @@ body:has(.monitor.is-fs) .side-nav { display: none; }
 .tl-foley.on { border-color: rgba(111,220,154,.5); background: linear-gradient(90deg, rgba(111,220,154,.18), rgba(111,220,154,.08)); }
 .tl-foley.on::before { opacity: .5; filter: hue-rotate(90deg); }
 .lane-note { margin-inline-start: auto; font-size: 10px; font-weight: 600; color: #ff8592; background: rgba(10,10,12,.8); padding: 1px 8px; border-radius: 4px; position: relative; z-index: 1; }
+.foley-el { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; left: 0; top: 0; }

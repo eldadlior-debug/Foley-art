@@ -1104,7 +1104,7 @@ function makeStudio(root, cfg, pageIndex) {
   /* ----- Music ----- */
   const audios = TRACKS.map((t) => {
     const a = new Audio();
-    a.preload = "auto";
+    a.preload = "none";
     a.loop = true;
     a.src = t.src;
     a.volume = SETTINGS.musicVolume;
@@ -1129,17 +1129,27 @@ function makeStudio(root, cfg, pageIndex) {
   };
   TRACKS.forEach((t, i) => {
     const r = makeRow(i, t.title, t.subtitle);
+    // "Missing" only when the file really isn't there / can't be read (code 4);
+    // a dropped download (network) is retried on the next play instead.
     audios[i].addEventListener("error", () => {
+      const e = audios[i].error;
+      if (e && e.code !== 4) return;
       if (!$(".track-missing", r)) $(".track-title", r).insertAdjacentHTML("beforeend", `<span class="track-missing">(קובץ חסר)</span>`);
     });
+    audios[i].addEventListener("loadeddata", () => { const m = $(".track-missing", r); if (m) m.remove(); });
   });
   makeRow(-1, NO_MUSIC_LABEL, "");
 
   const activeAudio = () => (selected >= 0 ? audios[selected] : null);
 
   /* ----- Foley channel: a second sound that runs with the video ----- */
-  const foley = new Audio();
-  foley.preload = "auto";
+  // A (hidden) video element, so the iPad can also take the sound of a video
+  // file (.mov / .mp4) picked with "+", not only audio files.
+  const foley = document.createElement("video");
+  foley.playsInline = true; foley.setAttribute("playsinline", "");
+  foley.className = "foley-el";
+  root.appendChild(foley);
+  foley.preload = "none";
   let foleyName = "", foleyUrl = "";
   const foleyLane = $("#tlFoley", root), foleyLabel = $("#tlFoleyLabel", root);
   const foleyCh = $('.mix-ch[data-ch="foley"]', root);
@@ -1155,7 +1165,11 @@ function makeStudio(root, cfg, pageIndex) {
     foleyCh.classList.toggle("has-file", !!src);
     if (src && !video.paused) playAudio();
   }
-  foley.addEventListener("error", () => { if (foleyName) foleyLabel.textContent = `♪ פולי · ${foleyName} (קובץ חסר ${foley.error ? foley.error.code : ""})`; });
+  foley.addEventListener("error", () => {
+    if (!foleyName || (foley.error && foley.error.code !== 4)) return;
+    foleyLabel.textContent = `♪ פולי · ${foleyName} (קובץ חסר)`;
+  });
+  foley.addEventListener("loadeddata", () => { if (foleyName) foleyLabel.textContent = `♪ פולי · ${foleyName}`; });
   foley.addEventListener("playing", () => laneNote(foley, ""));
   $("#foleyFile", root).addEventListener("change", (e) => {
     const f = e.target.files[0]; if (!f) return;
@@ -1242,6 +1256,7 @@ function makeStudio(root, cfg, pageIndex) {
     if (a && (!SETTINGS.musicFollowsVideoTime || syncEl(a, true, true))) list.push(a);
     if (foleyName && (!SETTINGS.musicFollowsVideoTime || syncEl(foley, false, true))) list.push(foley);
     list.forEach((el) => {
+      if (el.error) el.load();
       el.muted = chOf(el).muted;
       const pr = el.play();
       // If the iPad refuses the sound, say so on the timeline lane (so we can see why)
