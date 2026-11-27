@@ -244,12 +244,13 @@ function unloadVideo(v) {
   let had = false;
   if (v.hasAttribute("src")) { v.dataset.vsrc = v.getAttribute("src"); v.removeAttribute("src"); had = true; }
   v.querySelectorAll("source[src]").forEach((s) => { s.dataset.vsrc = s.getAttribute("src"); s.removeAttribute("src"); had = true; });
-  if (had) { try { v.pause(); } catch (_) {} v.load(); }
+  if (had) { v.dataset.parked = "1"; try { v.pause(); } catch (_) {} v.load(); }
 }
 function reloadVideo(v) {
   let had = false;
   if (v.dataset.vsrc !== undefined) { v.setAttribute("src", v.dataset.vsrc); delete v.dataset.vsrc; had = true; }
   v.querySelectorAll("source").forEach((s) => { if (s.dataset.vsrc !== undefined) { s.setAttribute("src", s.dataset.vsrc); delete s.dataset.vsrc; had = true; } });
+  delete v.dataset.parked;
   if (had) v.load();
 }
 function keepVideosFor(index) {
@@ -683,7 +684,12 @@ function createPlayer(root, video) {
     dur.textContent = fmtShort(d);
     if (video.buffered.length && d) buf.style.width = `${(video.buffered.end(video.buffered.length - 1) / d) * 100}%`;
   }
-  const markMissing = () => { root.classList.add("has-missing"); if (missing) missing.hidden = false; };
+  const markMissing = () => {
+    if (video.dataset.parked) return;  // emptied on purpose while off screen
+    root.classList.add("has-missing"); if (missing) missing.hidden = false;
+  };
+  const clearMissing = () => { root.classList.remove("has-missing"); if (missing) missing.hidden = true; };
+  video.addEventListener("loadedmetadata", clearMissing);
 
   video.addEventListener("timeupdate", render);
   video.addEventListener("loadedmetadata", render);
@@ -1332,7 +1338,12 @@ function makeStudio(root, cfg, pageIndex) {
   video.addEventListener("loadedmetadata", () => { buildRuler(); render(); });
   video.addEventListener("timeupdate", () => { if (video.paused) render(); });
   video.addEventListener("click", toggle);
-  const markMissing = () => { monitor.classList.add("has-missing"); $(".media-missing", monitor).hidden = false; };
+  const markMissing = () => {
+    if (video.dataset.parked) return;  // emptied on purpose while off screen
+    monitor.classList.add("has-missing"); $(".media-missing", monitor).hidden = false;
+  };
+  const clearMissing = () => { monitor.classList.remove("has-missing"); $(".media-missing", monitor).hidden = true; };
+  video.addEventListener("loadedmetadata", clearMissing);
   video.addEventListener("error", markMissing);
   $$("source", video).forEach((s) => s.addEventListener("error", markMissing));
   setTimeout(() => { if (video.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) markMissing(); }, 1500);
