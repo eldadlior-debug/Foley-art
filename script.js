@@ -190,7 +190,7 @@ function exitFs() {
     sec.setAttribute("aria-label", cfg.title);
     const v = $("#studioVideo", sec);
     $("source", v).src = cfg.video;
-    if (i > 0) { v.removeAttribute("src"); v.load(); last.after(sec); last = sec; }
+    if (i > 0) { v.preload = "none"; v.removeAttribute("src"); last.after(sec); last = sec; }
     $(".monitor-tag .en", sec).textContent = cfg.stage;
     $("#tlClip .en", sec).textContent = cfg.video.split("/").pop();
     $(".media-missing code", sec).textContent = cfg.video;
@@ -1143,12 +1143,7 @@ function makeStudio(root, cfg, pageIndex) {
   const activeAudio = () => (selected >= 0 ? audios[selected] : null);
 
   /* ----- Foley channel: a second sound that runs with the video ----- */
-  // A (hidden) video element, so the iPad can also take the sound of a video
-  // file (.mov / .mp4) picked with "+", not only audio files.
-  const foley = document.createElement("video");
-  foley.playsInline = true; foley.setAttribute("playsinline", "");
-  foley.className = "foley-el";
-  root.appendChild(foley);
+  const foley = new Audio();
   foley.preload = "none";
   let foleyName = "", foleyUrl = "";
   const foleyLane = $("#tlFoley", root), foleyLabel = $("#tlFoleyLabel", root);
@@ -1772,7 +1767,10 @@ function makeStudio(root, cfg, pageIndex) {
   return {
     toggle, step, seek, toggleFs, isFs, markIn, markOut, toggleSubs,
     deleteSelected: () => { if (editing >= 0) deleteCue(editing); },
-    enter: () => { requestAnimationFrame(() => { buildRuler(); render(); }); },
+    enter: () => {
+      if (video.readyState === 0 && video.networkState !== HTMLMediaElement.NETWORK_LOADING) { video.preload = "auto"; video.load(); }
+      requestAnimationFrame(() => { buildRuler(); render(); });
+    },
     leave: () => { video.pause(); pauseAudio(); if (isFs()) toggleFs(false); },
   };
 }
