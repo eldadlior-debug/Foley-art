@@ -14,9 +14,7 @@
    Add or remove rows freely; the panel builds itself from this list.
    ===================================================================== */
 const MUSIC_TRACKS = [
-  { title: "רצועה 1 — מתח",       subtitle: "Suspense · Strings", src: "assets/track1.mp3" },
-  { title: "רצועה 2 — קומדיה",    subtitle: "Comedy · Pizzicato", src: "assets/track2.mp3" },
-  { title: "רצועה 3 — הרפתקה",    subtitle: "Adventure · Orchestral", src: "assets/track3.mp3" },
+  { title: "רצועה 1", subtitle: "Music", src: "assets/page7-music.m4a" },
 ];
 
 /* =====================================================================

@@ -15,7 +15,7 @@ Drop your files into this folder using **exactly** these names
 | 8 · אולפן 2 | `assets/studio2/silent-scene.mp4`, `assets/studio2/dramatic.mp3`, `humor.mp3`, `assets/studio2/subtitles.json` | Same as slide 7, own media. Titles in `STUDIO_PAGES` in script.js |
 | 9 · אולפן 3 | `assets/studio3/silent-scene.mp4`, `assets/studio3/foley.m4a` (Foley channel), `music1.m4a`, `music2.m4a`, `assets/studio3/subtitles.json` | Same as slide 7, own media |
 | 5 · subtitles | `assets/subtitles.json` | Timed subtitles. Created by the ייצוא JSON button on slide 5 |
-| 5 · music | `assets/track1.mp3`, `assets/track2.mp3`, `assets/track3.mp3` | The three score options |
+| 7 · music | `assets/page7-music.m4a` | Music track for the first studio page |
 
 ## Changing texts
 - **Card answers / questions / images** → `GUESS_CARDS` at the top of `script.js` (add or remove cards freely; 4–6 looks best).
