@@ -12,6 +12,12 @@ Netlify and GitHub Pages both support it.)
 - **Netlify:** drag this folder onto https://app.netlify.com/drop, or connect the GitHub repo (build command: none, publish directory: `/`).
 - **GitHub Pages:** push to a repo → Settings → Pages → Deploy from branch `main` / root.
 
+## Offline (iPad)
+Open the site once in Safari while online: a note in the bottom corner shows the download and then
+"✓ מוכן לשימוש בלי אינטרנט". Then Share → Add to Home Screen and open it from the icon; it runs with no internet.
+`sw.js` serves the saved files; the list of files is `offline-assets.js`.
+**After changing any file, run `python3 tools/build-offline-list.py` before committing**, so iPads download the new version.
+
 ## Controls
 | Where | Key | Action |
 |---|---|---|

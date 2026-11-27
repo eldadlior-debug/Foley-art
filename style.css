@@ -963,3 +963,15 @@ body:has(.monitor.is-fs) .side-nav { display: none; }
 .tl-foley.on::before { opacity: .5; filter: hue-rotate(90deg); }
 .lane-note { margin-inline-start: auto; font-size: 10px; font-weight: 600; color: #ff8592; background: rgba(10,10,12,.8); padding: 1px 8px; border-radius: 4px; position: relative; z-index: 1; }
 .foley-el { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; left: 0; top: 0; }
+
+/* Offline download note (bottom corner) */
+.offline-pill {
+  position: fixed; left: 16px; bottom: 16px; z-index: 9999;
+  padding: 7px 14px; border-radius: 999px;
+  font: 500 12px/1.2 "Heebo", system-ui, sans-serif; color: var(--text-dim);
+  background: rgba(14, 14, 18, .88); border: 1px solid var(--glass-border, rgba(255,255,255,.1));
+  pointer-events: none; direction: rtl;
+}
+.offline-pill.is-done { color: var(--gold); border-color: var(--gold-dim); }
+.offline-pill.is-error { color: #ff8a7a; }
+.offline-pill[hidden] { display: none; }

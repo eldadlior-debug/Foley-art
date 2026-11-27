@@ -1830,3 +1830,77 @@ buildNav();
   onLeaveHandlers[SLIDE.LAYERS] = () => { prevLeave && prevLeave(); LockWaves.stop(); };
   if (current === SLIDE.LAYERS) LockWaves.start();
 }
+
+/* =====================================================================
+   OFFLINE: save the whole site on the iPad so it runs with no internet.
+   While online, every file in offline-assets.js is downloaded once into the
+   browser's cache; sw.js then serves them. A small note in the corner shows
+   the progress and "ready offline" when done.
+   ===================================================================== */
+(() => {
+  if (!("serviceWorker" in navigator) || !window.caches || location.protocol === "file:") return;
+  const CACHE = "foley-offline", FONT_CACHE = "foley-fonts";
+  const pill = document.createElement("div");
+  pill.className = "offline-pill";
+  pill.setAttribute("aria-live", "polite");
+  pill.hidden = true;
+  document.body.appendChild(pill);
+  let hideTimer;
+  const show = (text, cls, ms) => {
+    clearTimeout(hideTimer);
+    pill.textContent = text; pill.className = `offline-pill ${cls || ""}`; pill.hidden = false;
+    if (ms) hideTimer = setTimeout(() => { pill.hidden = true; }, ms);
+  };
+
+  const loadList = () => new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = `offline-assets.js?t=${Date.now()}&__dl=1`;
+    s.onload = () => res(self.OFFLINE_ASSETS || []);
+    s.onerror = rej;
+    document.head.appendChild(s);
+  });
+
+  async function saveFonts() {
+    const c = await caches.open(FONT_CACHE);
+    const cssUrl = self.OFFLINE_FONTS_CSS;
+    if (!cssUrl || (await c.match(cssUrl))) return;
+    const res = await fetch(cssUrl);
+    if (!res.ok) return;
+    const css = await res.clone().text();
+    const urls = [...css.matchAll(/url\((https:[^)]+)\)/g)].map((m) => m[1]);
+    for (const u of urls) { const r = await fetch(u); if (r.ok) await c.put(u, r); }
+    await c.put(cssUrl, res);
+  }
+
+  async function saveAll() {
+    if (!navigator.onLine) return;
+    const list = await loadList();
+    const c = await caches.open(CACHE);
+    const base = new URL("./", location.href).href;
+    const keyOf = ([p, r]) => new URL(`${p}?v=${r}`, base).href;
+    const wanted = new Set(list.map(keyOf));
+    // drop old versions of files that changed
+    for (const req of await c.keys()) if (!wanted.has(req.url)) await c.delete(req);
+    const todo = [];
+    for (const a of list) if (!(await c.match(keyOf(a)))) todo.push(a);
+    if (!todo.length) { show("✓ מוכן לשימוש בלי אינטרנט", "is-done", 4000); saveFonts().catch(() => {}); return; }
+    try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (_) {}
+    const total = todo.reduce((n, a) => n + a[2], 0);
+    let done = 0;
+    show("שומר לשימוש בלי אינטרנט · 0%");
+    for (const a of todo) {
+      const res = await fetch(`${a[0]}?v=${a[1]}&__dl=1`, { cache: "no-store" });
+      if (!res.ok) throw new Error(`${a[0]}: ${res.status}`);
+      await c.put(keyOf(a), res);
+      done += a[2];
+      show(`שומר לשימוש בלי אינטרנט · ${Math.round((done / total) * 100)}%`);
+    }
+    await saveFonts().catch(() => {});
+    show("✓ מוכן לשימוש בלי אינטרנט", "is-done", 6000);
+  }
+
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+    saveAll().catch(() => show("⚠ השמירה ללא אינטרנט לא הושלמה. תנסי לרענן כשיש רשת", "is-error", 8000));
+  });
+})();
