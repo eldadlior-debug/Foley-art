@@ -1152,7 +1152,8 @@ function makeStudio(root, cfg, pageIndex) {
     foleyCh.classList.toggle("has-file", !!src);
     if (src && !video.paused) playAudio();
   }
-  foley.addEventListener("error", () => { if (foleyName) foleyLabel.textContent = `♪ פולי · ${foleyName} (קובץ חסר)`; });
+  foley.addEventListener("error", () => { if (foleyName) foleyLabel.textContent = `♪ פולי · ${foleyName} (קובץ חסר ${foley.error ? foley.error.code : ""})`; });
+  foley.addEventListener("playing", () => laneNote(foley, ""));
   $("#foleyFile", root).addEventListener("change", (e) => {
     const f = e.target.files[0]; if (!f) return;
     unlock();
@@ -1219,6 +1220,7 @@ function makeStudio(root, cfg, pageIndex) {
       if (Math.abs(a.currentTime - target) < 0.4) return true;
     }
     a._lastSync = performance.now();
+    if (a.readyState === 0 && target < 0.3) return true;
     try { a.currentTime = target; } catch (_) {}
     return true;
   }
@@ -1236,22 +1238,21 @@ function makeStudio(root, cfg, pageIndex) {
     const a = activeAudio();
     if (a && (!SETTINGS.musicFollowsVideoTime || syncEl(a, true, true))) list.push(a);
     if (foleyName && (!SETTINGS.musicFollowsVideoTime || syncEl(foley, false, true))) list.push(foley);
-    list.forEach((el) => { el.muted = chOf(el).muted; const pr = el.play(); if (pr) pr.catch(() => {}); });
-  }
-  // First touch on the page: unlock the sounds for the iPad
-  let unlocked = false;
-  function unlock() {
-    if (ctx && ctx.state !== "running") ctx.resume().catch(() => {});
-    if (unlocked) return; unlocked = true;
-    [...audios, foley].forEach((a) => {
-      if (!a.src || !video.paused) return;
-      a.muted = true;
-      const pr = a.play();
-      const done = () => { if (video.paused) a.pause(); a.muted = chOf(a).muted; };
-      if (pr) pr.then(done, done); else done();
+    list.forEach((el) => {
+      el.muted = chOf(el).muted;
+      const pr = el.play();
+      // If the iPad refuses the sound, say so on the timeline lane (so we can see why)
+      if (pr) pr.then(() => laneNote(el, ""), (err) => laneNote(el, err && err.name ? err.name : "blocked"));
     });
   }
-  ["pointerdown", "keydown", "touchend"].forEach((ev) => document.addEventListener(ev, () => { if (root.classList.contains("is-active")) unlock(); }, { capture: true }));
+  function laneNote(el, msg) {
+    const lane = el === foley ? foleyLane : audioLane;
+    let n = $(".lane-note", lane);
+    if (!msg) { if (n) n.remove(); return; }
+    if (!n) { n = document.createElement("b"); n.className = "lane-note en"; lane.appendChild(n); }
+    n.textContent = `⚠ ${msg}`;
+  }
+  function unlock() { if (ctx && ctx.state !== "running") ctx.resume().catch(() => {}); }
   function pauseAudio() { audios.forEach((a) => a.pause()); foley.pause(); }
 
   function selectTrack(idx) {
