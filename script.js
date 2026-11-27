@@ -1074,6 +1074,7 @@ const Book = (() => {  // the opened-card view
 /* =====================================================================
    SLIDE 5 — Live Foley & scoring studio
    ===================================================================== */
+try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (_) {}
 let sharedCtx = null;
 function sharedAudioContext() {
   if (!sharedCtx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) throw new Error("no web audio"); sharedCtx = new AC(); }
@@ -1162,26 +1163,27 @@ function makeStudio(root, cfg, pageIndex) {
 
   /* ----- Mixer: volume + mute per channel. The iPad ignores the volume of
      a media element, so the sound goes through Web Audio gain knobs. ----- */
-  const mix = { music: { vol: SETTINGS.musicVolume, muted: false, els: audios }, foley: { vol: 1, muted: false, els: [foley] } };
+  // Plain media elements by default (the most reliable way to get sound on the
+  // iPad, also with the silent switch on). Only when a volume slider goes
+  // below 100% is that channel routed through a Web Audio gain knob, because
+  // the iPad ignores the volume of a media element.
+  const mix = { music: { vol: 1, muted: false, els: audios }, foley: { vol: 1, muted: false, els: [foley] } };
+  const chOf = (el) => (el === foley ? mix.foley : mix.music);
   let ctx = null;
-  function buildGraph() {
-    if (ctx || graphFailed) return;
+  function routeThroughGain(ch) {
+    if (ch.gain || ch.failed) return;
     try {
       ctx = sharedAudioContext();
-      Object.values(mix).forEach((ch) => {
-        ch.gain = ctx.createGain();
-        ch.gain.connect(ctx.destination);
-        ch.els.forEach((el) => ctx.createMediaElementSource(el).connect(ch.gain));
-      });
-    } catch (_) { graphFailed = true; ctx = null; }
-    applyMix();
+      if (ctx.state !== "running") ctx.resume().catch(() => {});
+      ch.gain = ctx.createGain();
+      ch.gain.connect(ctx.destination);
+      ch.els.forEach((el) => ctx.createMediaElementSource(el).connect(ch.gain));
+    } catch (_) { ch.failed = true; ch.gain = null; }
   }
-  let graphFailed = false;
   function applyMix() {
     Object.values(mix).forEach((ch) => {
-      const v = ch.muted ? 0 : ch.vol;
-      if (ch.gain) { ch.gain.gain.value = v; ch.els.forEach((el) => (el.volume = 1)); }
-      else ch.els.forEach((el) => (el.volume = v));
+      if (ch.gain) ch.gain.gain.value = ch.muted ? 0 : ch.vol;
+      ch.els.forEach((el) => { el.muted = ch.muted; if (!ch.gain) el.volume = ch.vol; });
     });
     $$(".mix-ch", root).forEach((el) => {
       const ch = mix[el.dataset.ch];
@@ -1195,7 +1197,12 @@ function makeStudio(root, cfg, pageIndex) {
     const ch = mix[el.dataset.ch];
     const vol = $(".mix-vol", el);
     vol.value = ch.vol;
-    vol.addEventListener("input", () => { ch.vol = Number(vol.value); if (ch.vol > 0) ch.muted = false; applyMix(); });
+    vol.addEventListener("input", () => {
+      ch.vol = Number(vol.value);
+      if (ch.vol > 0) ch.muted = false;
+      if (ch.vol < 0.99) routeThroughGain(ch);
+      applyMix();
+    });
     $(".mix-mute", el).addEventListener("click", (e) => { unlock(); ch.muted = !ch.muted; applyMix(); e.currentTarget.blur(); });
   });
 
@@ -1224,25 +1231,23 @@ function makeStudio(root, cfg, pageIndex) {
   // Must run inside the tap / key press itself: the iPad only lets sound
   // start from a user gesture (not from the video's later "play" event).
   function playAudio() {
-    buildGraph();
     if (ctx && ctx.state !== "running") ctx.resume().catch(() => {});
     const list = [];
     const a = activeAudio();
     if (a && (!SETTINGS.musicFollowsVideoTime || syncEl(a, true, true))) list.push(a);
     if (foleyName && (!SETTINGS.musicFollowsVideoTime || syncEl(foley, false, true))) list.push(foley);
-    list.forEach((el) => { el.muted = false; const pr = el.play(); if (pr) pr.catch(() => {}); });
+    list.forEach((el) => { el.muted = chOf(el).muted; const pr = el.play(); if (pr) pr.catch(() => {}); });
   }
   // First touch on the page: unlock the sounds for the iPad
   let unlocked = false;
   function unlock() {
-    buildGraph();
     if (ctx && ctx.state !== "running") ctx.resume().catch(() => {});
     if (unlocked) return; unlocked = true;
     [...audios, foley].forEach((a) => {
       if (!a.src || !video.paused) return;
       a.muted = true;
       const pr = a.play();
-      const done = () => { if (video.paused) a.pause(); a.muted = false; };
+      const done = () => { if (video.paused) a.pause(); a.muted = chOf(a).muted; };
       if (pr) pr.then(done, done); else done();
     });
   }
