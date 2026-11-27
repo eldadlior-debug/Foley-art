@@ -2,10 +2,19 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>אמנות הפולי | The Foley Art</title>
   <meta name="description" content="סדנת אמנות הפולי בהנחיית ליאור טל" />
   <meta name="theme-color" content="#0A0A0C" />
+
+  <!-- iPad / iPhone: "Add to Home Screen" opens the deck full screen, without Safari's bars -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="אמנות הפולי" />
+  <link rel="apple-touch-icon" href="assets/icon-180.png" />
+  <link rel="icon" type="image/png" href="assets/icon-512.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
 
   <!-- Fonts: Heebo (Hebrew), Cinzel + Montserrat (English display) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -23,7 +32,7 @@
   <!-- ===== Top studio bar ===== -->
   <header class="studio-bar" aria-hidden="true">
     <div class="rec"><span class="rec-dot"></span>REC</div>
-    <div class="studio-bar-title">THE FOLEY ART · STUDIO</div>
+    <div class="studio-bar-title">BEHIND THE SCENES OF THE SOUNDTRACK</div>
     <div class="studio-bar-count"><span id="slideNum">01</span> / <span id="slideTotal">05</span></div>
   </header>
 
@@ -41,7 +50,10 @@
           <span class="rec-dot"></span>
           <span class="en">WORKSHOP · LIVE SESSION</span>
         </div>
-        <h1 class="hero-title">אמנות הפולי</h1>
+        <h1 class="hero-title">
+          <span class="hero-lead" data-motion="pulse"><span>מאחורי הקלעים</span> <span>של הפסקול</span></span>
+          <span class="hero-name">אמנות הפולי</span>
+        </h1>
         <div class="hero-sub en">THE FOLEY ART</div>
         <div class="hero-line" aria-hidden="true"></div>
         <p class="hero-host">מנחה: <strong>ליאור טל</strong></p>
@@ -78,7 +90,7 @@
             <div class="wave" data-seed="1"></div>
             <div class="fader"><span class="fader-knob"></span></div>
             <div class="channel-lock">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+              <canvas class="lock-canvas" aria-hidden="true"></canvas>
             </div>
           </article>
 
@@ -97,7 +109,7 @@
             <div class="wave" data-seed="2"></div>
             <div class="fader"><span class="fader-knob"></span></div>
             <div class="channel-lock">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+              <canvas class="lock-canvas" aria-hidden="true"></canvas>
             </div>
           </article>
 
@@ -116,7 +128,7 @@
             <div class="wave" data-seed="3"></div>
             <div class="fader"><span class="fader-knob"></span></div>
             <div class="channel-lock">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+              <canvas class="lock-canvas" aria-hidden="true"></canvas>
             </div>
           </article>
         </div>
@@ -185,7 +197,49 @@
     </section>
 
     <!-- =========================================================
-         SLIDE 4 — Guess the sound
+         SLIDE 4 — Full-screen scene video (before the guess game)
+         VIDEO FILE: assets/scene-video.mp4
+         ========================================================= -->
+    <section class="slide slide-scene" data-title="הסצנה" aria-label="הסצנה">
+      <div class="theater theater-full" id="scenePlayer">
+        <div class="theater-frame">
+          <video id="sceneVideo" preload="auto" playsinline>
+            <source src="assets/scene-video.mp4" type="video/mp4" />
+          </video>
+          <button class="theater-bigplay" type="button" aria-label="נגן">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <div class="media-missing" hidden>
+            <div class="media-missing-title en">NO SIGNAL</div>
+            <code>assets/scene-video.mp4</code>
+          </div>
+        </div>
+        <div class="player-controls" dir="ltr">
+          <button class="pc-btn" data-act="play" type="button" aria-label="Play / Pause">
+            <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            <svg class="i-pause" viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+          </button>
+          <span class="pc-time" data-el="cur">00:00</span>
+          <div class="pc-progress" data-el="bar" role="slider" aria-label="Seek" tabindex="0">
+            <div class="pc-buffer" data-el="buf"></div>
+            <div class="pc-fill" data-el="fill"></div>
+            <div class="pc-thumb" data-el="thumb"></div>
+          </div>
+          <span class="pc-time" data-el="dur">00:00</span>
+          <button class="pc-btn" data-act="mute" type="button" aria-label="Mute">
+            <svg class="i-vol" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>
+            <svg class="i-mute" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM16 9l5 6M21 9l-5 6"/></svg>
+          </button>
+          <input class="pc-volume" data-el="vol" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume" />
+          <button class="pc-btn" data-act="fs" type="button" aria-label="Fullscreen">
+            <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         SLIDE 5 — Guess the sound
          VIDEO FILE: assets/guess-example.mp4
          CARDS: edit the GUESS_CARDS list at the top of script.js
          ========================================================= -->
@@ -232,20 +286,104 @@
                 </button>
               </div>
             </div>
-            <p class="guess-tip">צפו בקטע, הקשיבו היטב — ולחצו על כרטיס כדי לגלות מה באמת יצר את הצליל.</p>
-            <button class="btn btn-ghost btn-sm" id="flipAllBtn" type="button">הפוך את כל הכרטיסים</button>
+            <p class="guess-tip">צפו בקטע, הקשיבו היטב — ולחצו על כרטיס כדי לפתוח אותו ולגלות מה באמת יצר את הצליל.</p>
           </aside>
 
           <!-- Cards are generated from GUESS_CARDS in script.js -->
           <div class="card-grid" id="cardGrid"></div>
         </div>
       </div>
+
+      <!-- Opened card: grows out of the tapped card like an iPhone app opening,
+           then shows the scene and the real Foley performance side by side -->
+      <div class="app-view" id="appView" hidden>
+        <div class="app-panel" role="dialog" aria-modal="true" aria-label="התשובה">
+          <div class="app-content">
+            <div class="app-head">
+              <button class="app-close" type="button" aria-label="סגור">
+                <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+              </button>
+              <div class="app-title"><span class="en" data-el="num"></span><span>נחשו ממה עשוי הצליל</span></div>
+            </div>
+            <div class="app-panes">
+              <div class="app-pane pane-scene">
+                <div class="page-video">
+                  <video playsinline preload="auto"></video>
+                  <button type="button" class="clip-play" aria-label="נגן את הסצנה"></button>
+                  <span class="pane-tag en">SCENE</span>
+                </div>
+                <div class="pane-caption">
+                  <div class="pane-kicker">הסצנה</div>
+                  <div class="pane-title" data-el="title"></div>
+                </div>
+              </div>
+              <div class="app-pane pane-answer">
+                <div class="page-video">
+                  <video playsinline preload="auto"></video>
+                  <button type="button" class="clip-play" aria-label="נגן את התשובה"></button>
+                  <span class="pane-tag en">FOLEY</span>
+                </div>
+                <div class="pane-caption">
+                  <div class="pane-kicker" data-el="title2"></div>
+                  <div class="pane-title gold">כך זה נוצר</div>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-gold app-both" type="button">
+              <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+              <span>נגן את שניהם ביחד</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- =========================================================
-         SLIDE 5 — Live Foley & scoring studio
+         SLIDE 6 — Full-screen video: a Foley artist at work
+         VIDEO FILE: assets/foley-performance.mp4
+         ========================================================= -->
+    <section class="slide slide-scene" data-title="פולי בפעולה" aria-label="פולי בפעולה">
+      <div class="theater theater-full" id="performPlayer">
+        <div class="theater-frame">
+          <video id="performVideo" preload="auto" playsinline>
+            <source src="assets/foley-performance.mp4" type="video/mp4" />
+          </video>
+          <button class="theater-bigplay" type="button" aria-label="נגן">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <div class="media-missing" hidden>
+            <div class="media-missing-title en">NO SIGNAL</div>
+            <code>assets/foley-performance.mp4</code>
+          </div>
+        </div>
+        <div class="player-controls" dir="ltr">
+          <button class="pc-btn" data-act="play" type="button" aria-label="Play / Pause">
+            <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            <svg class="i-pause" viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+          </button>
+          <span class="pc-time" data-el="cur">00:00</span>
+          <div class="pc-progress" data-el="bar" role="slider" aria-label="Seek" tabindex="0">
+            <div class="pc-buffer" data-el="buf"></div>
+            <div class="pc-fill" data-el="fill"></div>
+            <div class="pc-thumb" data-el="thumb"></div>
+          </div>
+          <span class="pc-time" data-el="dur">00:00</span>
+          <button class="pc-btn" data-act="mute" type="button" aria-label="Mute">
+            <svg class="i-vol" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>
+            <svg class="i-mute" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM16 9l5 6M21 9l-5 6"/></svg>
+          </button>
+          <input class="pc-volume" data-el="vol" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume" />
+          <button class="pc-btn" data-act="fs" type="button" aria-label="Fullscreen">
+            <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         SLIDE 7 — Live Foley & scoring studio
          VIDEO FILE: assets/silent-scene.mp4
-         MUSIC FILES: assets/track1.mp3, track2.mp3, track3.mp3
+         MUSIC FILES: assets/page7-music.m4a
          TRACK TITLES: edit MUSIC_TRACKS at the top of script.js
          ========================================================= -->
     <section class="slide slide-studio" data-title="אולפן פולי ומוזיקה חי" aria-label="אולפן פולי ומוזיקה חי">
@@ -279,7 +417,7 @@
                 <div class="media-missing-title en">NO SIGNAL</div>
                 <code>assets/silent-scene.mp4</code>
               </div>
-              <div class="fs-hint en">SPACE play/pause · ← → 1s · F / ESC exit</div>
+              <div class="fs-hint en">SPACE play/pause · ← → 1s · S subtitles · F / ESC exit</div>
             </div>
           </div>
         </div>
@@ -298,7 +436,7 @@
               <svg viewBox="0 0 24 24"><path d="M13 6l6 6-6 6M5 6l6 6-6 6"/></svg>
             </button>
             <div class="timecode"><span id="tcCurrent">00:00:00</span><span class="tc-sep">/</span><span id="tcDuration">00:00:00</span></div>
-            <div class="timeline-legend">SPACE ▶︎❚❚ &nbsp;·&nbsp; ← → ±1s &nbsp;·&nbsp; I / O MARK &nbsp;·&nbsp; DRAG TO SCRUB</div>
+            <div class="timeline-legend">SPACE ▶︎❚❚ &nbsp;·&nbsp; ← → ±1s &nbsp;·&nbsp; ↓ START &nbsp;·&nbsp; I / O MARK &nbsp;·&nbsp; S SUBS &nbsp;·&nbsp; DRAG TO SCRUB</div>
           </div>
           <!-- Timeline is LTR on purpose (time flows left → right like CapCut) -->
           <div class="timeline" id="timeline" dir="ltr" tabindex="0" role="slider" aria-label="Timeline" aria-valuemin="0">
@@ -306,9 +444,18 @@
             <div class="tl-track">
               <div class="tl-clip" id="tlClip"><span class="en">silent-scene.mp4</span></div>
             </div>
-            <div class="tl-track tl-track-subs" id="tlSubs" title="כתוביות מתוזמנות"></div>
+            <div class="tl-row">
+              <!-- Eye: show / hide subtitles on the video (S). Starts hidden. -->
+              <button class="tl-eye" id="subsToggle" type="button" aria-pressed="false" aria-label="הצגת כתוביות" title="הצגה / הסתרה של הכתוביות (S)">
+                <svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path class="slash" d="M3 3l18 18"/></svg>
+              </button>
+              <div class="tl-track tl-track-subs" id="tlSubs" title="כתוביות מתוזמנות"></div>
+            </div>
             <div class="tl-track tl-track-audio">
               <div class="tl-audio" id="tlAudio"><span class="en" id="tlAudioLabel">— no music —</span></div>
+            </div>
+            <div class="tl-track tl-track-audio tl-track-foley">
+              <div class="tl-audio tl-foley" id="tlFoley"><span class="en" id="tlFoleyLabel">— no foley —</span></div>
             </div>
             <div class="tl-progress" id="tlProgress"></div>
             <div class="playhead" id="playhead"><span class="playhead-cap"></span></div>
@@ -320,10 +467,20 @@
           <div class="panel" id="musicPanel">
             <div class="panel-head">
               <h3>בחירת מוזיקה</h3>
-              <label class="volume-row" title="עוצמת מוזיקה">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9zM16 8.5a5 5 0 0 1 0 7"/></svg>
-                <input type="range" id="musicVolume" min="0" max="1" step="0.01" value="0.8" dir="ltr" aria-label="עוצמת מוזיקה" />
-              </label>
+              <!-- Mixer: one strip per audio channel (music + Foley). Tap the speaker to mute. -->
+              <div class="mixer">
+                <div class="mix-ch" data-ch="music">
+                  <button class="mix-mute" type="button" aria-pressed="false" title="השתקת מוזיקה" aria-label="השתקת מוזיקה"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path class="spk-wave" d="M16 8.5a5 5 0 0 1 0 7"/><path class="spk-slash" d="M3 3l18 18"/></svg></button>
+                  <span class="mix-name">מוזיקה</span>
+                  <input type="range" class="mix-vol" id="musicVolume" min="0" max="1" step="0.01" value="1" dir="ltr" aria-label="עוצמת מוזיקה" />
+                </div>
+                <div class="mix-ch" data-ch="foley">
+                  <button class="mix-mute" type="button" aria-pressed="false" title="השתקת פולי" aria-label="השתקת פולי"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path class="spk-wave" d="M16 8.5a5 5 0 0 1 0 7"/><path class="spk-slash" d="M3 3l18 18"/></svg></button>
+                  <span class="mix-name">פולי</span>
+                  <input type="range" class="mix-vol" id="foleyVolume" min="0" max="1" step="0.01" value="1" dir="ltr" aria-label="עוצמת פולי" />
+                  <label class="mix-add" title="טעינת קובץ פולי (אודיו או וידאו)" aria-label="טעינת קובץ פולי">+<input type="file" id="foleyFile" accept="audio/*,video/*" hidden /></label>
+                </div>
+              </div>
             </div>
             <!-- Rows generated from MUSIC_TRACKS in script.js -->
             <div class="track-list" id="trackList" role="radiogroup" aria-label="בחירת מוזיקה"></div>
@@ -377,6 +534,14 @@
     </section>
 
   </main>
+
+  <!-- ===== Big side arrows (easy to tap on an iPad). RTL: left = next, right = previous ===== -->
+  <button class="side-nav side-prev" id="sidePrev" type="button" aria-label="השקף הקודם">
+    <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
+  </button>
+  <button class="side-nav side-next" id="sideNext" type="button" aria-label="השקף הבא">
+    <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>
+  </button>
 
   <!-- ===== Bottom navigation: progress + slide switcher ===== -->
   <nav class="navbar" aria-label="ניווט שקפים">

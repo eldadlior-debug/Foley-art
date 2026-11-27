@@ -6,12 +6,16 @@ Drop your files into this folder using **exactly** these names
 | Slide | File | Notes |
 |---|---|---|
 | 3 · סרטון מבוא | `assets/intro-foley.mp4` | Your intro video (H.264 MP4 plays everywhere). Optional poster frame: `assets/intro-poster.jpg` |
-| 4 · נחשו ממה עשוי הצליל | `assets/guess-example.mp4` | The short clip shown beside the cards |
-| 4 · cards | `assets/cards/card1-front.jpg` … `card6-front.jpg` | Front of each card: a frame / thumbnail from the clip |
-| 4 · cards | `assets/cards/card1-prop.jpg` … `card6-prop.jpg` | Back of each card: photo of the real prop |
-| 5 · אולפן חי | `assets/silent-scene.mp4` | Played muted on purpose |
+| 5 · נחשו ממה עשוי הצליל | `assets/guess-example.mp4` | The short clip shown beside the cards |
+| 5 · cards | `assets/cards/clip1.mp4` … `clip4.mp4` | Short clip on the front of each card (plays with sound) |
+| 5 · cards | `assets/cards/answer1.mp4` … `answer4.mp4` | Back of each card: the answer clip (how the sound is really made, plays with sound) |
+| 4 · סצנה במסך מלא | `assets/scene-video.mp4` | The 20-second scene before the guess game |
+| 6 · פולי בפעולה | `assets/foley-performance.mp4` | Full-screen video of a Foley artist at work |
+| 7 · אולפן חי | `assets/silent-scene.mp4` | Played muted on purpose |
+| 8 · אולפן 2 | `assets/studio2/silent-scene.mp4`, `assets/studio2/dramatic.mp3`, `humor.mp3`, `assets/studio2/subtitles.json` | Same as slide 7, own media. Titles in `STUDIO_PAGES` in script.js |
+| 9 · אולפן 3 | `assets/studio3/silent-scene.mp4`, `assets/studio3/foley.m4a` (Foley channel), `music1.m4a`, `music2.m4a`, `assets/studio3/subtitles.json` | Same as slide 7, own media |
 | 5 · subtitles | `assets/subtitles.json` | Timed subtitles. Created by the ייצוא JSON button on slide 5 |
-| 5 · music | `assets/track1.mp3`, `assets/track2.mp3`, `assets/track3.mp3` | The three score options |
+| 7 · music | `assets/page7-music.m4a` | Music track for the first studio page |
 
 ## Changing texts
 - **Card answers / questions / images** → `GUESS_CARDS` at the top of `script.js` (add or remove cards freely; 4–6 looks best).
