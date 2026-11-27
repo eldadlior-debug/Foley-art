@@ -296,7 +296,7 @@ document.addEventListener("keydown", (e) => {
       if (key === "ArrowRight") { handled(); return Studio.step(+SETTINGS.stepSeconds); }
       if (key === "f" || key === "F" || key === "כ") { handled(); return Studio.toggleFs(); }
       if (key === "Escape" && Studio.isFs()) { handled(); return Studio.toggleFs(false); }
-      if (key === "Home") { handled(); return Studio.seek(0); }
+      if (key === "Home" || key === "ArrowDown") { handled(); return Studio.seek(0); }
       if (key === "s" || key === "S" || key === "ד") { handled(); return Studio.toggleSubs(); }
       if (key === "i" || key === "I" || key === "ן") { handled(); return Studio.markIn(); }
       if (key === "o" || key === "O" || key === "ם") { handled(); return Studio.markOut(); }
@@ -1130,15 +1130,44 @@ function makeStudio(root, cfg, pageIndex) {
 
   const activeAudio = () => (selected >= 0 ? audios[selected] : null);
 
+  // Keep the music on the video's clock. On the iPad every seek of the music
+  // stalls it for a moment, so small drifts are left alone and corrections
+  // are spaced out (constant re-seeking made the music silent there).
+  let lastSync = 0;
   function syncAudio(force = false) {
     const a = activeAudio();
     if (!a || !SETTINGS.musicFollowsVideoTime) return;
     const target = a.duration && isFinite(a.duration) ? video.currentTime % a.duration : video.currentTime;
-    if (force || Math.abs(a.currentTime - target) > 0.25) {
-      try { a.currentTime = target; } catch (_) {}
+    if (!force) {
+      if (a.seeking || a.readyState < 3 || performance.now() - lastSync < 1500) return;
+      if (Math.abs(a.currentTime - target) < 0.4) return;
     }
+    lastSync = performance.now();
+    try { a.currentTime = target; } catch (_) {}
   }
-  function playAudio() { const a = activeAudio(); if (a) { syncAudio(true); a.play().catch(() => {}); } }
+  // Must run inside the tap / key press itself: the iPad only lets sound
+  // start from a user gesture (not from the video's later "play" event).
+  function playAudio() {
+    const a = activeAudio();
+    if (!a) return;
+    a.muted = false;
+    syncAudio(true);
+    const pr = a.play();
+    if (pr) pr.catch(() => {});
+  }
+  // First touch on the page: unlock every music track for the iPad
+  let unlocked = false;
+  const unlock = () => {
+    if (unlocked) return; unlocked = true;
+    audios.forEach((a) => {
+      if (a === activeAudio() && !video.paused) return;
+      a.muted = true;
+      const pr = a.play();
+      const done = () => { if (!(a === activeAudio() && !video.paused)) a.pause(); a.muted = false; };
+      if (pr) pr.then(done, done); else done();
+    });
+  };
+  ["pointerdown", "keydown", "touchend"].forEach((ev) => document.addEventListener(ev, unlock, { capture: true, once: true }));
   function pauseAudio() { audios.forEach((a) => a.pause()); }
 
   function selectTrack(idx) {
@@ -1170,7 +1199,7 @@ function makeStudio(root, cfg, pageIndex) {
   }
   function toggle() {
     if (monitor.classList.contains("has-missing")) return;
-    if (video.paused || video.ended) { video.play().catch(() => {}); flashState(false); }
+    if (video.paused || video.ended) { video.play().catch(() => {}); playAudio(); flashState(false); }
     else { video.pause(); flashState(true); }
   }
   function seek(t) {
@@ -1275,7 +1304,7 @@ function makeStudio(root, cfg, pageIndex) {
     if (!dragging) return;
     dragging = false;
     timeline.classList.remove("is-drag");
-    if (wasPlaying) video.play().catch(() => {});
+    if (wasPlaying) { video.play().catch(() => {}); playAudio(); }
   };
   timeline.addEventListener("pointerup", endDrag);
   timeline.addEventListener("pointercancel", endDrag);
