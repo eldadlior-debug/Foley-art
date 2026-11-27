@@ -13,7 +13,7 @@ Drop your files into this folder using **exactly** these names
 | 6 · פולי בפעולה | `assets/foley-performance.mp4` | Full-screen video of a Foley artist at work |
 | 7 · אולפן חי | `assets/silent-scene.mp4` | Played muted on purpose |
 | 8 · אולפן 2 | `assets/studio2/silent-scene.mp4`, `assets/studio2/dramatic.mp3`, `humor.mp3`, `assets/studio2/subtitles.json` | Same as slide 7, own media. Titles in `STUDIO_PAGES` in script.js |
-| 9 · אולפן 3 | `assets/studio3/silent-scene.mp4`, `assets/studio3/foley.mp3` (Foley channel), `assets/studio3/subtitles.json` | Same as slide 7, own media |
+| 9 · אולפן 3 | `assets/studio3/silent-scene.mp4`, `assets/studio3/foley.m4a` (Foley channel), `music1.m4a`, `music2.m4a`, `assets/studio3/subtitles.json` | Same as slide 7, own media |
 | 5 · subtitles | `assets/subtitles.json` | Timed subtitles. Created by the ייצוא JSON button on slide 5 |
 | 5 · music | `assets/track1.mp3`, `assets/track2.mp3`, `assets/track3.mp3` | The three score options |
 
