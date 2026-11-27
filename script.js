@@ -239,6 +239,25 @@ function buildNav() {
   }, { passive: true });
 }
 
+// The iPad only lets a page hold a limited number of loaded video players.
+// So only the slide on screen keeps its videos loaded; the others are emptied
+// (their address is kept aside) and refilled when you come back to them.
+function unloadVideo(v) {
+  let had = false;
+  if (v.hasAttribute("src")) { v.dataset.vsrc = v.getAttribute("src"); v.removeAttribute("src"); had = true; }
+  v.querySelectorAll("source[src]").forEach((s) => { s.dataset.vsrc = s.getAttribute("src"); s.removeAttribute("src"); had = true; });
+  if (had) { try { v.pause(); } catch (_) {} v.load(); }
+}
+function reloadVideo(v) {
+  let had = false;
+  if (v.dataset.vsrc !== undefined) { v.setAttribute("src", v.dataset.vsrc); delete v.dataset.vsrc; had = true; }
+  v.querySelectorAll("source").forEach((s) => { if (s.dataset.vsrc !== undefined) { s.setAttribute("src", s.dataset.vsrc); delete s.dataset.vsrc; had = true; } });
+  if (had) v.load();
+}
+function keepVideosFor(index) {
+  slides.forEach((sl, i) => sl.querySelectorAll("video").forEach((v) => (i === index ? reloadVideo(v) : unloadVideo(v))));
+}
+
 function goTo(index) {
   index = clamp(index, 0, slides.length - 1);
   if (index === current && slides[index].classList.contains("is-active")) return;
@@ -249,6 +268,7 @@ function goTo(index) {
   slides[index].classList.remove("is-leaving-back");
   slides[index].classList.add("is-active");
   current = index;
+  keepVideosFor(index);
   onEnterHandlers[index]?.();
   updateNav();
   if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
@@ -1790,6 +1810,7 @@ buildNav();
   slides.forEach((s) => s.classList.remove("is-active"));
   current = start;
   slides[start].classList.add("is-active");
+  keepVideosFor(start);
   onEnterHandlers[start]?.();
   updateNav();
 })();
