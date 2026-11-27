@@ -35,24 +35,26 @@ const SUBTITLES_FILE = "assets/subtitles.json";
    - video:     the silent scene (played muted on purpose)
    - tracks:    the music options (same shape as MUSIC_TRACKS above)
    - subtitles: the timed-subtitles file for that page (made by "ייצוא JSON")
+   - foley:     optional Foley sound file for the second mixer channel
+                (or load one live with the "+" next to "פולי")
    Add a row here to add another studio page.
    ===================================================================== */
 const STUDIO_PAGES = [
   { title: "אולפן פולי ומוזיקה חי", stage: "LIVE · FOLEY STAGE A",
-    video: "assets/silent-scene.mp4", tracks: MUSIC_TRACKS, subtitles: SUBTITLES_FILE },
+    video: "assets/silent-scene.mp4", tracks: MUSIC_TRACKS, subtitles: SUBTITLES_FILE, foley: "" },
   { title: "אולפן פולי ומוזיקה חי 2", stage: "LIVE · FOLEY STAGE B",
     video: "assets/studio2/silent-scene.mp4",
     tracks: [
       { title: "דרמטי",     subtitle: "Dramatic", src: "assets/studio2/dramatic.mp3" },
       { title: "הומוריסטי", subtitle: "Humorous", src: "assets/studio2/humor.mp3" },
     ],
-    subtitles: "assets/studio2/subtitles.json" },
+    subtitles: "assets/studio2/subtitles.json", foley: "" },
   { title: "אולפן פולי ומוזיקה חי 3", stage: "LIVE · FOLEY STAGE C",
     video: "assets/studio3/silent-scene.mp4",
     tracks: [
       { title: "הפסקול המקורי", subtitle: "Original soundtrack", src: "assets/studio3/crab.mp3" },
     ],
-    subtitles: "assets/studio3/subtitles.json" },
+    subtitles: "assets/studio3/subtitles.json", foley: "" },
 ];
 
 /* Label of the "no music" row (keeps the scene fully silent) */
@@ -1074,6 +1076,11 @@ const Book = (() => {  // the opened-card view
 /* =====================================================================
    SLIDE 5 — Live Foley & scoring studio
    ===================================================================== */
+let sharedCtx = null;
+function sharedAudioContext() {
+  if (!sharedCtx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) throw new Error("no web audio"); sharedCtx = new AC(); }
+  return sharedCtx;
+}
 function makeStudio(root, cfg, pageIndex) {
   const TRACKS = cfg.tracks || [];
   const video = $("#studioVideo", root);
@@ -1128,48 +1135,124 @@ function makeStudio(root, cfg, pageIndex) {
 
   const activeAudio = () => (selected >= 0 ? audios[selected] : null);
 
-  // Keep the music on the video's clock. On the iPad every seek of the music
-  // stalls it for a moment, so small drifts are left alone and corrections
-  // are spaced out (constant re-seeking made the music silent there).
-  let lastSync = 0;
-  function syncAudio(force = false) {
-    const a = activeAudio();
-    if (!a || !SETTINGS.musicFollowsVideoTime) return;
-    const target = a.duration && isFinite(a.duration) ? video.currentTime % a.duration : video.currentTime;
+  /* ----- Foley channel: a second sound that runs with the video ----- */
+  const foley = new Audio();
+  foley.preload = "auto";
+  let foleyName = "", foleyUrl = "";
+  const foleyLane = $("#tlFoley", root), foleyLabel = $("#tlFoleyLabel", root);
+  const foleyCh = $('.mix-ch[data-ch="foley"]', root);
+  function setFoley(src, name) {
+    foley.pause();
+    if (foleyUrl) { URL.revokeObjectURL(foleyUrl); foleyUrl = ""; }
+    if (src && src.startsWith("blob:")) foleyUrl = src;
+    foleyName = src ? name : "";
+    if (src) foley.src = src; else foley.removeAttribute("src");
+    foley.load();
+    foleyLane.classList.toggle("on", !!src);
+    foleyLabel.textContent = src ? `♪ פולי · ${name}` : "— no foley —";
+    foleyCh.classList.toggle("has-file", !!src);
+    if (src && !video.paused) playAudio();
+  }
+  foley.addEventListener("error", () => { if (foleyName) foleyLabel.textContent = `♪ פולי · ${foleyName} (קובץ חסר)`; });
+  $("#foleyFile", root).addEventListener("change", (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    unlock();
+    setFoley(URL.createObjectURL(f), f.name);
+    e.target.value = "";
+  });
+  if (cfg.foley) setFoley(cfg.foley, cfg.foley.split("/").pop());
+
+  /* ----- Mixer: volume + mute per channel. The iPad ignores the volume of
+     a media element, so the sound goes through Web Audio gain knobs. ----- */
+  const mix = { music: { vol: SETTINGS.musicVolume, muted: false, els: audios }, foley: { vol: 1, muted: false, els: [foley] } };
+  let ctx = null;
+  function buildGraph() {
+    if (ctx || graphFailed) return;
+    try {
+      ctx = sharedAudioContext();
+      Object.values(mix).forEach((ch) => {
+        ch.gain = ctx.createGain();
+        ch.gain.connect(ctx.destination);
+        ch.els.forEach((el) => ctx.createMediaElementSource(el).connect(ch.gain));
+      });
+    } catch (_) { graphFailed = true; ctx = null; }
+    applyMix();
+  }
+  let graphFailed = false;
+  function applyMix() {
+    Object.values(mix).forEach((ch) => {
+      const v = ch.muted ? 0 : ch.vol;
+      if (ch.gain) { ch.gain.gain.value = v; ch.els.forEach((el) => (el.volume = 1)); }
+      else ch.els.forEach((el) => (el.volume = v));
+    });
+    $$(".mix-ch", root).forEach((el) => {
+      const ch = mix[el.dataset.ch];
+      el.classList.toggle("is-muted", ch.muted);
+      $(".mix-mute", el).setAttribute("aria-pressed", ch.muted ? "true" : "false");
+    });
+    audioLane.classList.toggle("is-muted", mix.music.muted);
+    foleyLane.classList.toggle("is-muted", mix.foley.muted);
+  }
+  $$(".mix-ch", root).forEach((el) => {
+    const ch = mix[el.dataset.ch];
+    const vol = $(".mix-vol", el);
+    vol.value = ch.vol;
+    vol.addEventListener("input", () => { ch.vol = Number(vol.value); if (ch.vol > 0) ch.muted = false; applyMix(); });
+    $(".mix-mute", el).addEventListener("click", (e) => { unlock(); ch.muted = !ch.muted; applyMix(); e.currentTarget.blur(); });
+  });
+
+  // Keep a sound on the video's clock. On the iPad every seek stalls the sound
+  // for a moment, so small drifts are left alone and corrections are spaced
+  // out (constant re-seeking made the music silent there).
+  function syncEl(a, loopIt, force) {
+    const d = a.duration && isFinite(a.duration) ? a.duration : 0;
+    let target = video.currentTime;
+    if (d && loopIt) target %= d;
+    if (d && !loopIt && target >= d) { a.pause(); return false; }
     if (!force) {
-      if (a.seeking || a.readyState < 3 || performance.now() - lastSync < 1500) return;
-      if (Math.abs(a.currentTime - target) < 0.4) return;
+      if (a.seeking || a.readyState < 3 || performance.now() - (a._lastSync || 0) < 1500) return true;
+      if (Math.abs(a.currentTime - target) < 0.4) return true;
     }
-    lastSync = performance.now();
+    a._lastSync = performance.now();
     try { a.currentTime = target; } catch (_) {}
+    return true;
+  }
+  function syncAudio(force = false) {
+    if (!SETTINGS.musicFollowsVideoTime) return;
+    const a = activeAudio();
+    if (a) syncEl(a, true, force);
+    if (foleyName) syncEl(foley, false, force);
   }
   // Must run inside the tap / key press itself: the iPad only lets sound
   // start from a user gesture (not from the video's later "play" event).
   function playAudio() {
+    buildGraph();
+    if (ctx && ctx.state !== "running") ctx.resume().catch(() => {});
+    const list = [];
     const a = activeAudio();
-    if (!a) return;
-    a.muted = false;
-    syncAudio(true);
-    const pr = a.play();
-    if (pr) pr.catch(() => {});
+    if (a && (!SETTINGS.musicFollowsVideoTime || syncEl(a, true, true))) list.push(a);
+    if (foleyName && (!SETTINGS.musicFollowsVideoTime || syncEl(foley, false, true))) list.push(foley);
+    list.forEach((el) => { el.muted = false; const pr = el.play(); if (pr) pr.catch(() => {}); });
   }
-  // First touch on the page: unlock every music track for the iPad
+  // First touch on the page: unlock the sounds for the iPad
   let unlocked = false;
-  const unlock = () => {
+  function unlock() {
+    buildGraph();
+    if (ctx && ctx.state !== "running") ctx.resume().catch(() => {});
     if (unlocked) return; unlocked = true;
-    audios.forEach((a) => {
-      if (a === activeAudio() && !video.paused) return;
+    [...audios, foley].forEach((a) => {
+      if (!a.src || !video.paused) return;
       a.muted = true;
       const pr = a.play();
-      const done = () => { if (!(a === activeAudio() && !video.paused)) a.pause(); a.muted = false; };
+      const done = () => { if (video.paused) a.pause(); a.muted = false; };
       if (pr) pr.then(done, done); else done();
     });
-  };
-  ["pointerdown", "keydown", "touchend"].forEach((ev) => document.addEventListener(ev, unlock, { capture: true, once: true }));
-  function pauseAudio() { audios.forEach((a) => a.pause()); }
+  }
+  ["pointerdown", "keydown", "touchend"].forEach((ev) => document.addEventListener(ev, () => { if (root.classList.contains("is-active")) unlock(); }, { capture: true }));
+  function pauseAudio() { audios.forEach((a) => a.pause()); foley.pause(); }
 
   function selectTrack(idx) {
-    pauseAudio();
+    audios.forEach((a) => a.pause());
     selected = idx;
     rows.forEach(({ el, idx: i }) => {
       const on = i === selected;
@@ -1187,8 +1270,7 @@ function makeStudio(root, cfg, pageIndex) {
   function updateLive() {
     rows.forEach(({ el }) => el.classList.toggle("is-live", !video.paused));
   }
-  $("#musicVolume", root).value = SETTINGS.musicVolume;
-  $("#musicVolume", root).addEventListener("input", (e) => audios.forEach((a) => (a.volume = Number(e.target.value))));
+  applyMix();
 
   /* ----- Transport ----- */
   function flashState(paused) {

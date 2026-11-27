@@ -454,6 +454,9 @@
             <div class="tl-track tl-track-audio">
               <div class="tl-audio" id="tlAudio"><span class="en" id="tlAudioLabel">— no music —</span></div>
             </div>
+            <div class="tl-track tl-track-audio tl-track-foley">
+              <div class="tl-audio tl-foley" id="tlFoley"><span class="en" id="tlFoleyLabel">— no foley —</span></div>
+            </div>
             <div class="tl-progress" id="tlProgress"></div>
             <div class="playhead" id="playhead"><span class="playhead-cap"></span></div>
           </div>
@@ -464,10 +467,20 @@
           <div class="panel" id="musicPanel">
             <div class="panel-head">
               <h3>בחירת מוזיקה</h3>
-              <label class="volume-row" title="עוצמת מוזיקה">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9zM16 8.5a5 5 0 0 1 0 7"/></svg>
-                <input type="range" id="musicVolume" min="0" max="1" step="0.01" value="0.8" dir="ltr" aria-label="עוצמת מוזיקה" />
-              </label>
+              <!-- Mixer: one strip per audio channel (music + Foley). Tap the speaker to mute. -->
+              <div class="mixer">
+                <div class="mix-ch" data-ch="music">
+                  <button class="mix-mute" type="button" aria-pressed="false" title="השתקת מוזיקה" aria-label="השתקת מוזיקה"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path class="spk-wave" d="M16 8.5a5 5 0 0 1 0 7"/><path class="spk-slash" d="M3 3l18 18"/></svg></button>
+                  <span class="mix-name">מוזיקה</span>
+                  <input type="range" class="mix-vol" id="musicVolume" min="0" max="1" step="0.01" value="0.8" dir="ltr" aria-label="עוצמת מוזיקה" />
+                </div>
+                <div class="mix-ch" data-ch="foley">
+                  <button class="mix-mute" type="button" aria-pressed="false" title="השתקת פולי" aria-label="השתקת פולי"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path class="spk-wave" d="M16 8.5a5 5 0 0 1 0 7"/><path class="spk-slash" d="M3 3l18 18"/></svg></button>
+                  <span class="mix-name">פולי</span>
+                  <input type="range" class="mix-vol" id="foleyVolume" min="0" max="1" step="0.01" value="1" dir="ltr" aria-label="עוצמת פולי" />
+                  <label class="mix-add" title="טעינת קובץ פולי (אודיו או וידאו)" aria-label="טעינת קובץ פולי">+<input type="file" id="foleyFile" accept="audio/*,video/*" hidden /></label>
+                </div>
+              </div>
             </div>
             <!-- Rows generated from MUSIC_TRACKS in script.js -->
             <div class="track-list" id="trackList" role="radiogroup" aria-label="בחירת מוזיקה"></div>
