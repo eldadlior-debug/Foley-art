@@ -13,8 +13,8 @@ self.OFFLINE_ASSETS = [
 ],
 [
 "script.js",
-"cf584e93a6",
-91416
+"5220bc6fed",
+91650
 ],
 [
 "manifest.webmanifest",
