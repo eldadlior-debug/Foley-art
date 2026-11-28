@@ -50,8 +50,8 @@ const STUDIO_PAGES = [
   { title: "אולפן פולי ומוזיקה חי 3", stage: "LIVE · FOLEY STAGE C",
     video: "assets/studio3/silent-scene.mp4",
     tracks: [
-      { title: "רצועה 1", subtitle: "", src: "assets/studio3/music1.m4a" },
-      { title: "רצועה 2", subtitle: "", src: "assets/studio3/music2.m4a" },
+      { title: "דרמטי",     subtitle: "Dramatic", src: "assets/studio3/dramatic.m4a" },
+      { title: "הומוריסטי", subtitle: "Humorous", src: "assets/studio3/humor.m4a" },
     ],
     subtitles: "assets/studio3/subtitles.json", foley: "assets/studio3/foley.m4a" },
 ];

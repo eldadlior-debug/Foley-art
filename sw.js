@@ -11,7 +11,8 @@ const scopeUrl = new URL(self.registration.scope);
 const REVS = new Map((self.OFFLINE_ASSETS || []).map(([p, r]) => [p, r]));
 
 self.addEventListener("install", () => self.skipWaiting());
-self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
+// No clients.claim(): a page that started without the worker keeps loading its
+// videos straight from the network (switching mid-video breaks playback).
 
 // "assets/x.mp4" -> the exact cache key for its current version
 function relPath(url) {
@@ -52,6 +53,8 @@ async function ranged(req, res) {
   });
 }
 
+const sources = new Map();  // "client|file" -> "cache" | "net"
+
 function withTimeout(p, ms) {
   return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
 }
@@ -91,10 +94,24 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // Media: the saved copy first (in ranges for video / audio)
+  // Media: the saved copy first (in ranges for video / audio). A player must
+  // get all the pieces of one file from the same place, so the choice
+  // (saved copy or network) is made when it starts reading the file and kept
+  // until it starts over; otherwise a file saved mid-play breaks playback.
+  const range = req.headers.get("range");
+  const k = `${e.clientId}|${path}`;
+  const starting = !range || /^bytes=0-/.test(range);
   e.respondWith((async () => {
-    const hit = await fromCache(path);
-    if (hit) return ranged(req, hit);
+    let mode = starting ? null : sources.get(k);
+    if (!mode) {
+      mode = (await fromCache(path)) ? "cache" : "net";
+      sources.set(k, mode);
+      if (sources.size > 200) sources.delete(sources.keys().next().value);
+    }
+    if (mode === "cache") {
+      const hit = await fromCache(path);
+      if (hit) return ranged(req, hit);
+    }
     return fetch(req);
   })());
 });
