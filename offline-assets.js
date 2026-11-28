@@ -173,8 +173,8 @@ self.OFFLINE_ASSETS = [
 ],
 [
 "assets/studio4/foley.m4a",
-"2ea5ae955f",
-544674
+"248ba20ce6",
+395744
 ],
 [
 "assets/studio4/silent-scene.mp4",
