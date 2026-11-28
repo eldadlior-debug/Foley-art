@@ -1849,6 +1849,8 @@ buildNav();
 (() => {
   if (!("serviceWorker" in navigator) || !window.caches || location.protocol === "file:") return;
   const CACHE = "foley-offline", FONT_CACHE = "foley-fonts";
+  // short version id of this page code (from index.html), to tell versions apart
+  const BUILD = ((document.querySelector('script[src*="script.js"]') || {}).src || "").split("v=")[1]?.slice(0, 4) || "dev";
   const pill = document.createElement("div");
   pill.className = "offline-pill";
   pill.setAttribute("aria-live", "polite");
@@ -1892,7 +1894,7 @@ buildNav();
     for (const req of await c.keys()) if (!wanted.has(req.url)) await c.delete(req);
     const todo = [];
     for (const a of list) if (!(await c.match(keyOf(a)))) todo.push(a);
-    if (!todo.length) { show("✓ מוכן לשימוש בלי אינטרנט", "is-done", 4000); saveFonts().catch(() => {}); return; }
+    if (!todo.length) { show(`✓ מוכן לשימוש בלי אינטרנט · ${BUILD}`, "is-done", 4000); saveFonts().catch(() => {}); return; }
     try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (_) {}
     const total = todo.reduce((n, a) => n + a[2], 0);
     let done = 0;
@@ -1905,7 +1907,7 @@ buildNav();
       show(`שומר לשימוש בלי אינטרנט · ${Math.round((done / total) * 100)}%`);
     }
     await saveFonts().catch(() => {});
-    show("✓ מוכן לשימוש בלי אינטרנט", "is-done", 6000);
+    show(`✓ מוכן לשימוש בלי אינטרנט · ${BUILD}`, "is-done", 6000);
   }
 
   window.addEventListener("load", () => {
