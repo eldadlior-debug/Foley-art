@@ -1325,9 +1325,15 @@ function makeStudio(root, cfg, pageIndex) {
 
   // When the video stops to load more of itself, the sound waits with it and
   // both carry on together (instead of the sound running ahead).
-  let heldByVideo = false;
-  video.addEventListener("waiting", () => { if (!video.paused) { heldByVideo = true; pauseAudio(); } });
-  video.addEventListener("playing", () => { if (heldByVideo) { heldByVideo = false; playAudio(); } });
+  // A very short stop is ignored: pausing and restarting the sound for it
+  // would itself be a hiccup.
+  let heldByVideo = false, holdTimer = 0;
+  video.addEventListener("waiting", () => {
+    clearTimeout(holdTimer);
+    holdTimer = setTimeout(() => { if (!video.paused && video.readyState < 3) { heldByVideo = true; pauseAudio(); } }, 400);
+  });
+  video.addEventListener("playing", () => { clearTimeout(holdTimer); if (heldByVideo) { heldByVideo = false; playAudio(); } });
+  video.addEventListener("pause", () => clearTimeout(holdTimer));
 
   function selectTrack(idx) {
     audios.forEach((a) => a.pause());

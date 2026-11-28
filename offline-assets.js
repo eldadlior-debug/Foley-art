@@ -3,7 +3,7 @@ self.OFFLINE_FONTS_CSS = "https://fonts.googleapis.com/css2?family=Cinzel:wght@4
 self.OFFLINE_ASSETS = [
 [
 "index.html",
-"0ad2c3b613",
+"90d98ab73b",
 31611
 ],
 [
@@ -13,8 +13,8 @@ self.OFFLINE_ASSETS = [
 ],
 [
 "script.js",
-"887d41cc86",
-92916
+"52a83b295f",
+93227
 ],
 [
 "manifest.webmanifest",

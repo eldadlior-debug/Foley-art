@@ -29,10 +29,23 @@ async function fromCache(path) {
   return (k && (await c.match(k))) || (await c.match(new URL(path, scopeUrl).href, { ignoreSearch: true }));
 }
 
+// A playing video asks for many small pieces of its file. Reading the whole
+// file out of the cache for every piece was slow on the iPad (the video kept
+// stopping to wait, and the sound with it), so the last few files read are
+// kept in memory.
+const blobs = new Map();  // cache key -> Promise<Blob>
+function blobOf(key, res) {
+  if (!blobs.has(key)) {
+    blobs.set(key, res.blob().catch((e) => { blobs.delete(key); throw e; }));
+    while (blobs.size > 3) blobs.delete(blobs.keys().next().value);
+  }
+  return blobs.get(key);
+}
+
 async function ranged(req, res) {
   const range = req.headers.get("range");
   if (!range) return res;
-  const blob = await res.blob();
+  const blob = await blobOf(res.url || req.url, res);
   const m = /bytes=(\d*)-(\d*)/.exec(range);
   const size = blob.size;
   let start = m && m[1] !== "" ? +m[1] : 0;
