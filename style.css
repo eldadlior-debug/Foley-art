@@ -221,8 +221,8 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round
   color: var(--gold);
 }
 .hero-line { width: 120px; height: 1px; margin: 30px 0 22px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
-.hero-host { margin: 0 0 40px; font-size: clamp(17px, 1.6vw, 22px); color: var(--text-dim); font-weight: 300; }
-.hero-host strong { color: var(--text); font-weight: 500; }
+.hero-host { margin: 0 0 44px; font-size: clamp(26px, 2.7vw, 36px); color: var(--text-dim); font-weight: 300; }
+.hero-host strong { color: var(--text); font-weight: 600; }
 
 .slide-hero .hero-content > * { opacity: 0; transform: translateY(20px); transition: opacity 1.2s var(--ease), transform 1.2s var(--ease); }
 .slide-hero.is-active .hero-content > * { opacity: 1; transform: none; }
