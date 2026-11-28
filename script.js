@@ -135,6 +135,9 @@ const SETTINGS = {
      Set to false if you prefer Right arrow = next.                    */
   rtlArrows: true,
 
+  /* Mixer pages: the Foley channel starts muted; tap its speaker to turn it on. */
+  foleyMutedAtStart: true,
+
   /* Slide 5 timecode is MM:SS:FF (minutes:seconds:frames). */
   timecodeFps: 25,
 
@@ -1212,7 +1215,7 @@ function makeStudio(root, cfg, pageIndex) {
   // iPad, also with the silent switch on). Only when a volume slider goes
   // below 100% is that channel routed through a Web Audio gain knob, because
   // the iPad ignores the volume of a media element.
-  const mix = { music: { vol: 1, muted: false, els: audios }, foley: { vol: 1, muted: false, els: [foley] } };
+  const mix = { music: { vol: 1, muted: false, els: audios }, foley: { vol: 1, muted: SETTINGS.foleyMutedAtStart !== false, els: [foley] } };
   const chOf = (el) => (el === foley ? mix.foley : mix.music);
   let ctx = null;
   function routeThroughGain(ch) {
@@ -1250,6 +1253,7 @@ function makeStudio(root, cfg, pageIndex) {
     });
     $(".mix-mute", el).addEventListener("click", (e) => { unlock(); ch.muted = !ch.muted; applyMix(); e.currentTarget.blur(); });
   });
+  applyMix();  // show the starting state (Foley muted until you turn it on)
 
   // Keep a sound on the video's clock. On the iPad every seek stalls the sound
   // for a moment, so small drifts are left alone and corrections are spaced
