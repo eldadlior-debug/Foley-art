@@ -11,6 +11,7 @@ const scopeUrl = new URL(self.registration.scope);
 const REVS = new Map((self.OFFLINE_ASSETS || []).map(([p, r]) => [p, r]));
 
 self.addEventListener("install", () => self.skipWaiting());
+// Take over open pages right away, so an update shows after one reload.
 self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 
 // "assets/x.mp4" -> the exact cache key for its current version
@@ -52,6 +53,8 @@ async function ranged(req, res) {
   });
 }
 
+const sources = new Map();  // "client|file" -> "cache" | "net"
+
 function withTimeout(p, ms) {
   return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
 }
@@ -81,7 +84,11 @@ self.addEventListener("fetch", (e) => {
   if (req.mode === "navigate" || CORE.test(path)) {
     e.respondWith((async () => {
       try {
-        const res = await withTimeout(fetch(req), 3000);
+        // Always ask the server for the newest page code (skip the browser's
+        // own cache). Only a real network failure (or a very slow answer)
+        // falls back to the saved copy, so updates show up right away.
+        if (self.navigator && self.navigator.onLine === false) throw new Error("offline");
+        const res = await withTimeout(fetch(req.mode === "navigate" ? req.url : req, { cache: "no-cache" }), 15000);
         if (res.ok) return res;
         throw new Error(res.status);
       } catch (_) {
@@ -91,10 +98,26 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // Media: the saved copy first (in ranges for video / audio)
+  // Media: the saved copy first (in ranges for video / audio). A player must
+  // get all the pieces of one file from the same place, so the choice
+  // (saved copy or network) is made when it starts reading the file and kept
+  // until it starts over; otherwise a file saved mid-play breaks playback.
+  const range = req.headers.get("range");
+  const k = `${e.clientId}|${path}`;
+  const starting = !range || /^bytes=0-/.test(range);
   e.respondWith((async () => {
-    const hit = await fromCache(path);
-    if (hit) return ranged(req, hit);
+    // a player already reading this file from the network before this worker
+    // took over keeps reading it from the network
+    let mode = starting ? null : (sources.get(k) || "net");
+    if (!mode) {
+      mode = (await fromCache(path)) ? "cache" : "net";
+      sources.set(k, mode);
+      if (sources.size > 200) sources.delete(sources.keys().next().value);
+    }
+    if (mode === "cache") {
+      const hit = await fromCache(path);
+      if (hit) return ranged(req, hit);
+    }
     return fetch(req);
   })());
 });

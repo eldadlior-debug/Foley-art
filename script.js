@@ -38,22 +38,30 @@ const SUBTITLES_FILE = "assets/subtitles.json";
    Add a row here to add another studio page.
    ===================================================================== */
 const STUDIO_PAGES = [
+  // 7 · car
   { title: "אולפן פולי ומוזיקה חי", stage: "LIVE · FOLEY STAGE A",
-    video: "assets/silent-scene.mp4", tracks: MUSIC_TRACKS, subtitles: SUBTITLES_FILE, foley: "" },
+    video: "assets/studio4/silent-scene.mp4",
+    tracks: [],
+    subtitles: "assets/studio4/subtitles.json", foley: "assets/studio4/foley.m4a" },
+  // 8 · man and cat
   { title: "אולפן פולי ומוזיקה חי 2", stage: "LIVE · FOLEY STAGE B",
     video: "assets/studio2/silent-scene.mp4",
     tracks: [
       { title: "דרמטי",     subtitle: "Dramatic", src: "assets/studio2/dramatic.mp3" },
       { title: "הומוריסטי", subtitle: "Humorous", src: "assets/studio2/humor.mp3" },
     ],
-    subtitles: "assets/studio2/subtitles.json", foley: "" },
+    subtitles: "assets/studio2/subtitles.json", foley: "assets/studio2/foley.m4a" },
+  // 9 · crabs
   { title: "אולפן פולי ומוזיקה חי 3", stage: "LIVE · FOLEY STAGE C",
     video: "assets/studio3/silent-scene.mp4",
     tracks: [
-      { title: "רצועה 1", subtitle: "", src: "assets/studio3/music1.m4a" },
-      { title: "רצועה 2", subtitle: "", src: "assets/studio3/music2.m4a" },
+      { title: "דרמטי",     subtitle: "Dramatic", src: "assets/studio3/dramatic.m4a" },
+      { title: "הומוריסטי", subtitle: "Humorous", src: "assets/studio3/humor.m4a" },
     ],
     subtitles: "assets/studio3/subtitles.json", foley: "assets/studio3/foley.m4a" },
+  // 10 · Anna and Elsa
+  { title: "אולפן פולי ומוזיקה חי 4", stage: "LIVE · FOLEY STAGE D",
+    video: "assets/silent-scene.mp4", tracks: MUSIC_TRACKS, subtitles: SUBTITLES_FILE, foley: "" },
 ];
 
 /* Label of the "no music" row (keeps the scene fully silent) */
@@ -126,6 +134,9 @@ const SETTINGS = {
   /* Hebrew RTL: Left arrow = NEXT slide, Right arrow = PREVIOUS slide.
      Set to false if you prefer Right arrow = next.                    */
   rtlArrows: true,
+
+  /* Mixer pages: the Foley volume slider starts at 0; raise it to hear the Foley. */
+  foleyStartsSilent: true,
 
   /* Slide 5 timecode is MM:SS:FF (minutes:seconds:frames). */
   timecodeFps: 25,
@@ -307,7 +318,7 @@ document.addEventListener("keydown", (e) => {
   if (key === "PageUp")   { handled(); return goTo(current - 1); }
 
   switch (current) {
-    case SLIDE.STUDIO: case SLIDE.STUDIO + 1: case SLIDE.STUDIO + 2: case SLIDE.STUDIO + 3: {
+    case SLIDE.STUDIO: case SLIDE.STUDIO + 1: case SLIDE.STUDIO + 2: case SLIDE.STUDIO + 3: case SLIDE.STUDIO + 4: {
       const Studio = studios[current - SLIDE.STUDIO];
       if (!Studio) break;
       // Arrows & Space belong to the video here (normal + fullscreen)
@@ -1204,7 +1215,9 @@ function makeStudio(root, cfg, pageIndex) {
   // iPad, also with the silent switch on). Only when a volume slider goes
   // below 100% is that channel routed through a Web Audio gain knob, because
   // the iPad ignores the volume of a media element.
-  const mix = { music: { vol: 1, muted: false, els: audios }, foley: { vol: 1, muted: false, els: [foley] } };
+  const mix = { music: { vol: 1, muted: false, els: audios }, foley: SETTINGS.foleyStartsSilent === false ? { vol: 1, muted: false, els: [foley] }
+                                                    // slider at 0 (muted too, since the iPad ignores a media element's volume)
+                                                    : { vol: 0, muted: true, els: [foley] } };
   const chOf = (el) => (el === foley ? mix.foley : mix.music);
   let ctx = null;
   function routeThroughGain(ch) {
@@ -1242,6 +1255,7 @@ function makeStudio(root, cfg, pageIndex) {
     });
     $(".mix-mute", el).addEventListener("click", (e) => { unlock(); ch.muted = !ch.muted; applyMix(); e.currentTarget.blur(); });
   });
+  applyMix();  // show the starting state (Foley slider at 0 until you raise it)
 
   // Keep a sound on the video's clock. On the iPad every seek stalls the sound
   // for a moment, so small drifts are left alone and corrections are spaced
@@ -1445,7 +1459,8 @@ function makeStudio(root, cfg, pageIndex) {
   const cueText = $("#cueText", root), cueStart = $("#cueStart", root), cueEnd = $("#cueEnd", root);
   const cueSave = $("#cueSave", root), cueCancel = $("#cueCancel", root), cueList = $("#cueList", root);
   const cueStatus = $("#cueStatus", root), cueCount = $("#cueCount", root), tlSubs = $("#tlSubs", root);
-  const DRAFT_KEY = pageIndex ? `foley-subtitles-draft-${pageIndex + 1}` : "foley-subtitles-draft";
+  // keyed by the page's subtitles file, so local edits follow the scene if pages move
+  const DRAFT_KEY = cfg.subtitles === SUBTITLES_FILE ? "foley-subtitles-draft" : `foley-subtitles-draft-${cfg.subtitles}`;
   let editing = -1;          // index of the cue being edited, -1 = new cue
   let serverJson = "[]";     // what assets/subtitles.json currently holds
   let lastShown = null;
@@ -1739,7 +1754,7 @@ function makeStudio(root, cfg, pageIndex) {
     fetch(cfg.subtitles, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : []))
       .then(apply)
-      .catch(() => apply(!pageIndex && typeof SUBTITLES_FALLBACK !== "undefined" ? SUBTITLES_FALLBACK : []));
+      .catch(() => apply(cfg.subtitles === SUBTITLES_FILE && typeof SUBTITLES_FALLBACK !== "undefined" ? SUBTITLES_FALLBACK : []));
   }
   cueLayoutReady = true;
   resetForm(0);
