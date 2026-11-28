@@ -1263,6 +1263,8 @@ function makeStudio(root, cfg, pageIndex) {
       if (a.seeking || a.readyState < 3 || performance.now() - (a._lastSync || 0) < 1500) return true;
       if (Math.abs(a.currentTime - target) < 0.4) return true;
     }
+    // already in place: don't seek (every seek is a small hiccup on the iPad)
+    if (Math.abs(a.currentTime - target) < 0.08) return true;
     a._lastSync = performance.now();
     if (a.readyState === 0 && target < 0.3) return true;
     try { a.currentTime = target; } catch (_) {}
@@ -1299,6 +1301,33 @@ function makeStudio(root, cfg, pageIndex) {
   }
   function unlock() { if (ctx && ctx.state !== "running") ctx.resume().catch(() => {}); }
   function pauseAudio() { audios.forEach((a) => a.pause()); foley.pause(); }
+
+  // Load each sound file whole into memory when the page opens, so it plays
+  // smoothly from the very first press. A sound still downloading while it
+  // plays stutters on the iPad and keeps getting pulled back into sync.
+  function loadWhole(a) {
+    const orig = a.getAttribute("src");
+    if (a._whole || !orig || orig.startsWith("blob:")) return;
+    a._whole = fetch(orig)
+      .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(r.status))))
+      .then((b) => {
+        const swap = () => {
+          if (a.getAttribute("src") !== orig) return;  // replaced meanwhile
+          a.src = URL.createObjectURL(b);
+          a.preload = "auto";
+          a.load();
+        };
+        if (a.paused) swap(); else a.addEventListener("pause", swap, { once: true });
+      })
+      .catch(() => { a._whole = null; a.preload = "auto"; a.load(); });
+  }
+  function loadSounds() { audios.forEach(loadWhole); if (foleyName) loadWhole(foley); }
+
+  // When the video stops to load more of itself, the sound waits with it and
+  // both carry on together (instead of the sound running ahead).
+  let heldByVideo = false;
+  video.addEventListener("waiting", () => { if (!video.paused) { heldByVideo = true; pauseAudio(); } });
+  video.addEventListener("playing", () => { if (heldByVideo) { heldByVideo = false; playAudio(); } });
 
   function selectTrack(idx) {
     audios.forEach((a) => a.pause());
@@ -1807,6 +1836,7 @@ function makeStudio(root, cfg, pageIndex) {
     deleteSelected: () => { if (editing >= 0) deleteCue(editing); },
     enter: () => {
       if (video.readyState === 0 && video.networkState !== HTMLMediaElement.NETWORK_LOADING) { video.preload = "auto"; video.load(); }
+      loadSounds();
       requestAnimationFrame(() => { buildRuler(); render(); });
     },
     leave: () => { video.pause(); pauseAudio(); if (isFs()) toggleFs(false); },
@@ -1849,6 +1879,8 @@ buildNav();
 (() => {
   if (!("serviceWorker" in navigator) || !window.caches || location.protocol === "file:") return;
   const CACHE = "foley-offline", FONT_CACHE = "foley-fonts";
+  // short version id of this page code (from index.html), to tell versions apart
+  const BUILD = ((document.querySelector('script[src*="script.js"]') || {}).src || "").split("v=")[1]?.slice(0, 4) || "dev";
   const pill = document.createElement("div");
   pill.className = "offline-pill";
   pill.setAttribute("aria-live", "polite");
@@ -1892,7 +1924,7 @@ buildNav();
     for (const req of await c.keys()) if (!wanted.has(req.url)) await c.delete(req);
     const todo = [];
     for (const a of list) if (!(await c.match(keyOf(a)))) todo.push(a);
-    if (!todo.length) { show("✓ מוכן לשימוש בלי אינטרנט", "is-done", 4000); saveFonts().catch(() => {}); return; }
+    if (!todo.length) { show(`✓ מוכן לשימוש בלי אינטרנט · ${BUILD}`, "is-done", 4000); saveFonts().catch(() => {}); return; }
     try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (_) {}
     const total = todo.reduce((n, a) => n + a[2], 0);
     let done = 0;
@@ -1905,7 +1937,7 @@ buildNav();
       show(`שומר לשימוש בלי אינטרנט · ${Math.round((done / total) * 100)}%`);
     }
     await saveFonts().catch(() => {});
-    show("✓ מוכן לשימוש בלי אינטרנט", "is-done", 6000);
+    show(`✓ מוכן לשימוש בלי אינטרנט · ${BUILD}`, "is-done", 6000);
   }
 
   window.addEventListener("load", () => {

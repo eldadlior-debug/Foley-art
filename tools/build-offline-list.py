@@ -19,6 +19,14 @@ def rev(path):
     with open(path, "rb") as fh:
         return hashlib.sha1(fh.read()).hexdigest()[:10]
 
+# Stamp index.html with the current versions of the page code, so a browser
+# (or the iPad's saved copy) can never pair a new page with old code.
+import re
+html = open("index.html", encoding="utf-8").read()
+for name in ("style.css", "script.js"):
+    html = re.sub(r'(["\'])' + re.escape(name) + r'(\?v=[0-9a-f]*)?(["\'])', r'\g<1>' + name + "?v=" + rev(name) + r'\g<3>', html)
+open("index.html", "w", encoding="utf-8").write(html)
+
 assets = [[p, rev(p), os.path.getsize(p)] for p in CORE + sorted(files)]
 fonts = ("https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700"
          "&family=Heebo:wght@300;400;500;700;800;900&family=Montserrat:wght@300;400;500;600&display=swap")
