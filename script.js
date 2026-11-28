@@ -1323,6 +1323,37 @@ function makeStudio(root, cfg, pageIndex) {
   }
   function loadSounds() { audios.forEach(loadWhole); if (foleyName) loadWhole(foley); }
 
+  // The scene video too is read whole into memory while its page is open, so
+  // nothing is read from the saved copy while it plays (in the home-screen
+  // app, playing straight from the saved copy stuttered). Let go on leaving.
+  let vidBlobUrl = "", vidLoading = null;
+  function loadVideoWhole() {
+    if (vidBlobUrl || vidLoading || !window.fetch || !window.URL || !URL.createObjectURL) return;
+    const srcEl = $("source", video);
+    const orig = srcEl && (srcEl.getAttribute("src") || srcEl.dataset.vsrc);
+    if (!orig) return;
+    const mine = (vidLoading = fetch(orig)
+      .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(r.status))))
+      .then((b) => {
+        if (vidLoading !== mine || !studioRoot.closest(".slide").classList.contains("is-active")) return;
+        if (!video.paused) return;  // already playing: keep it as it is
+        const t = video.currentTime || 0;
+        vidBlobUrl = URL.createObjectURL(b.type ? b : new Blob([b], { type: "video/mp4" }));
+        video.src = vidBlobUrl;
+        video.load();
+        if (t > 0) video.addEventListener("loadedmetadata", () => { try { video.currentTime = t; } catch (_) {} }, { once: true });
+      })
+      .catch(() => {})
+      .finally(() => { if (vidLoading === mine) vidLoading = null; }));
+  }
+  function dropVideoWhole() {
+    vidLoading = null;
+    if (!vidBlobUrl) return;
+    video.removeAttribute("src");
+    URL.revokeObjectURL(vidBlobUrl);
+    vidBlobUrl = "";
+  }
+
   // When the video stops to load more of itself, the sound waits with it and
   // both carry on together (instead of the sound running ahead).
   // A very short stop is ignored: pausing and restarting the sound for it
@@ -1843,9 +1874,10 @@ function makeStudio(root, cfg, pageIndex) {
     enter: () => {
       if (video.readyState === 0 && video.networkState !== HTMLMediaElement.NETWORK_LOADING) { video.preload = "auto"; video.load(); }
       loadSounds();
+      loadVideoWhole();
       requestAnimationFrame(() => { buildRuler(); render(); });
     },
-    leave: () => { video.pause(); pauseAudio(); if (isFs()) toggleFs(false); },
+    leave: () => { video.pause(); pauseAudio(); if (isFs()) toggleFs(false); dropVideoWhole(); },
   };
 }
 const studios = STUDIO_PAGES.map((cfg, i) => makeStudio(slides[SLIDE.STUDIO + i], cfg, i));
