@@ -11,8 +11,8 @@ const scopeUrl = new URL(self.registration.scope);
 const REVS = new Map((self.OFFLINE_ASSETS || []).map(([p, r]) => [p, r]));
 
 self.addEventListener("install", () => self.skipWaiting());
-// No clients.claim(): a page that started without the worker keeps loading its
-// videos straight from the network (switching mid-video breaks playback).
+// Take over open pages right away, so an update shows after one reload.
+self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 
 // "assets/x.mp4" -> the exact cache key for its current version
 function relPath(url) {
@@ -84,7 +84,11 @@ self.addEventListener("fetch", (e) => {
   if (req.mode === "navigate" || CORE.test(path)) {
     e.respondWith((async () => {
       try {
-        const res = await withTimeout(fetch(req), 3000);
+        // Always ask the server for the newest page code (skip the browser's
+        // own cache). Only a real network failure (or a very slow answer)
+        // falls back to the saved copy, so updates show up right away.
+        if (self.navigator && self.navigator.onLine === false) throw new Error("offline");
+        const res = await withTimeout(fetch(req.mode === "navigate" ? req.url : req, { cache: "no-cache" }), 15000);
         if (res.ok) return res;
         throw new Error(res.status);
       } catch (_) {
@@ -102,7 +106,9 @@ self.addEventListener("fetch", (e) => {
   const k = `${e.clientId}|${path}`;
   const starting = !range || /^bytes=0-/.test(range);
   e.respondWith((async () => {
-    let mode = starting ? null : sources.get(k);
+    // a player already reading this file from the network before this worker
+    // took over keeps reading it from the network
+    let mode = starting ? null : (sources.get(k) || "net");
     if (!mode) {
       mode = (await fromCache(path)) ? "cache" : "net";
       sources.set(k, mode);
