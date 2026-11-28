@@ -12,7 +12,7 @@ import hashlib, json, os, subprocess
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
 CORE = ["index.html", "style.css", "script.js", "manifest.webmanifest"]
-files = subprocess.run(["git", "ls-files", "assets"], capture_output=True, text=True, check=True).stdout.split()
+files = subprocess.run(["git", "ls-files", "--cached", "--others", "--exclude-standard", "assets"], capture_output=True, text=True, check=True).stdout.split()
 files = [f for f in files if not f.endswith((".md", ".gitkeep")) and os.path.exists(f)]
 
 def rev(path):
