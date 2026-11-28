@@ -1114,6 +1114,11 @@ const Book = (() => {  // the opened-card view
    ===================================================================== */
 try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (_) {}
 let sharedCtx = null;
+// iPad / iPhone: sound routed through Web Audio from a media element comes out
+// silent there, so on those devices the sliders only switch a channel on/off.
+const IS_IOS = /iP(ad|hone|od)/.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
 function sharedAudioContext() {
   if (!sharedCtx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) throw new Error("no web audio"); sharedCtx = new AC(); }
   return sharedCtx;
@@ -1250,7 +1255,8 @@ function makeStudio(root, cfg, pageIndex) {
     vol.addEventListener("input", () => {
       ch.vol = Number(vol.value);
       if (ch.vol > 0) ch.muted = false;
-      if (ch.vol < 0.99) routeThroughGain(ch);
+      if (ch.vol < 0.99 && !IS_IOS) routeThroughGain(ch);
+      if (ch.vol === 0) ch.muted = true;
       applyMix();
     });
     $(".mix-mute", el).addEventListener("click", (e) => { unlock(); ch.muted = !ch.muted; applyMix(); e.currentTarget.blur(); });
