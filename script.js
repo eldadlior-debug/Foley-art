@@ -1765,8 +1765,30 @@ function makeStudio(root, cfg, pageIndex) {
   }
   $$(".subs-tab", root).forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
 
-  input.addEventListener("input", updateSubtitle);
-  $("#subsClear", root).addEventListener("click", () => { input.value = ""; updateSubtitle(); input.focus(); });
+  // Live typing is recorded: a line is timed from the moment you start typing
+  // it until you press Enter, then saved as a timed subtitle and the box is
+  // cleared for the next line.
+  let liveStart = null;
+  input.addEventListener("input", () => {
+    if (!input.value.trim()) liveStart = null;
+    else if (liveStart === null) liveStart = video.currentTime || 0;
+    updateSubtitle();
+  });
+  input.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" || e.shiftKey || e.isComposing) return;
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    const now = video.currentTime || 0;
+    let start = liveStart === null ? Math.max(0, now - 2) : liveStart;
+    if (start > now) start = Math.max(0, now - 2);  // went back in the video meanwhile
+    const end = Math.min(Math.max(now, start + 1), duration());
+    if (end > start) { cues.push({ start, end, text }); cues = clean(cues); }
+    input.value = "";
+    liveStart = null;
+    refreshCues();
+  });
+  $("#subsClear", root).addEventListener("click", () => { input.value = ""; liveStart = null; updateSubtitle(); input.focus(); });
   $("#markIn", root).addEventListener("click", markIn);
   $("#markOut", root).addEventListener("click", markOut);
   cueSave.addEventListener("click", saveCue);
