@@ -12,7 +12,7 @@ Drop your files into this folder using **exactly** these names
 | 4 · סצנה במסך מלא | `assets/scene-video.mp4` | The 20-second scene before the guess game |
 | 6 · פולי בפעולה | `assets/foley-performance.mp4` | Full-screen video of a Foley artist at work |
 | 7 · אולפן (מכונית) | `assets/studio4/silent-scene.mp4`, `assets/studio4/foley.m4a` (Foley channel, no music yet) | Studio videos play muted on purpose. Order and titles: `STUDIO_PAGES` in script.js |
-| 8 · אולפן 2 (איש וחתול) | `assets/studio2/silent-scene.mp4`, `assets/studio2/dramatic.mp3`, `humor.mp3`, `assets/studio2/subtitles.json` | Same as slide 7, own media. Titles in `STUDIO_PAGES` in script.js |
+| 8 · אולפן 2 (איש וחתול) | `assets/studio2/silent-scene.mp4`, `assets/studio2/dramatic.mp3`, `humor.mp3`, `assets/studio2/foley.m4a` (Foley channel), `assets/studio2/subtitles.json` | Same as slide 7, own media. Titles in `STUDIO_PAGES` in script.js |
 | 9 · אולפן 3 (סרטנים) | `assets/studio3/silent-scene.mp4`, `assets/studio3/foley.m4a` (Foley channel), `dramatic.m4a`, `humor.m4a` (music), `assets/studio3/subtitles.json` | Same as slide 7, own media |
 | 5 · subtitles | `assets/subtitles.json` | Timed subtitles. Created by the ייצוא JSON button on slide 5 |
 | 10 · אולפן 4 (אנה ואלזה) | `assets/silent-scene.mp4`, music `assets/page7-music.m4a`, `assets/subtitles.json` | |

@@ -50,7 +50,7 @@ const STUDIO_PAGES = [
       { title: "דרמטי",     subtitle: "Dramatic", src: "assets/studio2/dramatic.mp3" },
       { title: "הומוריסטי", subtitle: "Humorous", src: "assets/studio2/humor.mp3" },
     ],
-    subtitles: "assets/studio2/subtitles.json", foley: "" },
+    subtitles: "assets/studio2/subtitles.json", foley: "assets/studio2/foley.m4a" },
   // 9 · crabs
   { title: "אולפן פולי ומוזיקה חי 3", stage: "LIVE · FOLEY STAGE C",
     video: "assets/studio3/silent-scene.mp4",

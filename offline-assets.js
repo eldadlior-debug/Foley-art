@@ -13,8 +13,8 @@ self.OFFLINE_ASSETS = [
 ],
 [
 "script.js",
-"d9d2840bd2",
-91172
+"1a406ce2e2",
+91196
 ],
 [
 "manifest.webmanifest",
@@ -140,6 +140,11 @@ self.OFFLINE_ASSETS = [
 "assets/studio2/dramatic.mp3",
 "c47bfef23e",
 577690
+],
+[
+"assets/studio2/foley.m4a",
+"24132b967c",
+535984
 ],
 [
 "assets/studio2/humor.mp3",
