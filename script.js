@@ -135,9 +135,6 @@ const SETTINGS = {
      Set to false if you prefer Right arrow = next.                    */
   rtlArrows: true,
 
-  /* Mixer pages: the Foley volume slider starts at 0; raise it to hear the Foley. */
-  foleyStartsSilent: true,
-
   /* Slide 5 timecode is MM:SS:FF (minutes:seconds:frames). */
   timecodeFps: 25,
 
@@ -1114,11 +1111,6 @@ const Book = (() => {  // the opened-card view
    ===================================================================== */
 try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (_) {}
 let sharedCtx = null;
-// iPad / iPhone: sound routed through Web Audio from a media element comes out
-// silent there, so on those devices the sliders only switch a channel on/off.
-const IS_IOS = /iP(ad|hone|od)/.test(navigator.userAgent) ||
-  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-
 function sharedAudioContext() {
   if (!sharedCtx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) throw new Error("no web audio"); sharedCtx = new AC(); }
   return sharedCtx;
@@ -1220,9 +1212,7 @@ function makeStudio(root, cfg, pageIndex) {
   // iPad, also with the silent switch on). Only when a volume slider goes
   // below 100% is that channel routed through a Web Audio gain knob, because
   // the iPad ignores the volume of a media element.
-  const mix = { music: { vol: 1, muted: false, els: audios }, foley: SETTINGS.foleyStartsSilent === false ? { vol: 1, muted: false, els: [foley] }
-                                                    // slider at 0 (muted too, since the iPad ignores a media element's volume)
-                                                    : { vol: 0, muted: true, els: [foley] } };
+  const mix = { music: { vol: 1, muted: false, els: audios }, foley: { vol: 1, muted: false, els: [foley] } };
   const chOf = (el) => (el === foley ? mix.foley : mix.music);
   let ctx = null;
   function routeThroughGain(ch) {
@@ -1255,13 +1245,11 @@ function makeStudio(root, cfg, pageIndex) {
     vol.addEventListener("input", () => {
       ch.vol = Number(vol.value);
       if (ch.vol > 0) ch.muted = false;
-      if (ch.vol < 0.99 && !IS_IOS) routeThroughGain(ch);
-      if (ch.vol === 0) ch.muted = true;
+      if (ch.vol < 0.99) routeThroughGain(ch);
       applyMix();
     });
     $(".mix-mute", el).addEventListener("click", (e) => { unlock(); ch.muted = !ch.muted; applyMix(); e.currentTarget.blur(); });
   });
-  applyMix();  // show the starting state (Foley slider at 0 until you raise it)
 
   // Keep a sound on the video's clock. On the iPad every seek stalls the sound
   // for a moment, so small drifts are left alone and corrections are spaced
