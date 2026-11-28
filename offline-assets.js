@@ -3,12 +3,12 @@ self.OFFLINE_FONTS_CSS = "https://fonts.googleapis.com/css2?family=Cinzel:wght@4
 self.OFFLINE_ASSETS = [
 [
 "index.html",
-"0d3260fdfb",
-31787
+"9ac1c415ad",
+31671
 ],
 [
 "style.css",
-"4540501cc7",
+"a39b8f214e",
 59001
 ],
 [
